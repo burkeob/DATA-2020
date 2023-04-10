@@ -10,6 +10,11 @@ library(survey)
 
 # setwd("~/Desktop/DSI Spring/Stats/Final Project")
 
+
+####################################################
+# TODO: Get regression for each variable in a loop #
+####################################################
+
 load('cleaned_data.Rdata')
 
 
@@ -19,6 +24,8 @@ df <- df %>% dplyr::select(race_imp, year, wrkstat, marital, age, race, educ, se
 df <- df %>% filter(race != '.i:  Inapplicable')
 
 surv.des <- svydesign(data = df, ids = ~vpsu, weights = ~wgt_comb, strata = ~vstrat, nest=TRUE)
+
+# T-Tests between year and every variable
 
 svyttest(formula = wealth_imp ~ year, design = surv.des)
 svyttest(formula = sex_imp ~ year, design = surv.des)
@@ -30,7 +37,7 @@ svyttest(formula = political_imp ~ year, design = surv.des)
 svyttest(formula = race_imp ~ year, design = surv.des)
 svyttest(formula = religion_imp ~ year, design = surv.des)
 
-
+# (WIP) Forwards and Backwards Logistic Regression
 
 educ_full <- svyglm(formula = educ_imp~year+wrkstat+marital+age+race+educ+sex+born+income
        +region+partyid+relig+zodiac, 

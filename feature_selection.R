@@ -32,7 +32,7 @@ df_covariates <- df %>% dplyr::select(year, wrkstat, marital, age, race, educ, s
 df_variables <- df %>% dplyr::select(wealth_imp, sex_imp, parents_imp, educ_imp, hardWork_imp, rightPpl_imp,
                                      political_imp, race_imp, religion_imp)
 
-stat_matrix <- matrix(NA, 9, 1)
+stat_matrix <- matrix(NA, 9, 2)
 fwd_mdl_list <- list()
 bck_mdl_list <- list()
 lasso_beta <- list()
@@ -40,8 +40,14 @@ lasso_lambda <- list()
 best_lmbda_cv <- list()
 idx <- 1
 
+for (cname in colnames(df_variables)){
+  stat_matrix[idx,1] <- cname
+  idx <- idx + 1
+}
 
+idx <- 1
 for (col in df_variables){
+
   # Create data we need for specific variable
   df_cov_temp <- df_covariates
   df_cov_temp$var <- col
@@ -75,7 +81,7 @@ for (col in df_variables){
   
   # t-test between year and variable
   ttest.svy <- svyttest(formula = var ~ year, design = surv.des)
-  stat_matrix[idx] <- ttest.svy$p.value
+  stat_matrix[idx, 2] <- ttest.svy$p.value
   
   # Forward and Backward stepwise regression
   #lm_full <- svyglm(formula = var ~ year+wrkstat+marital+age+race+educ+sex+born+income+region+partyid+relig+zodiac, 
@@ -94,7 +100,7 @@ for (col in df_variables){
 }
 
 # Testing out some vizs for Lasso Regression
-var.id = 9
+var.id = 6
 
 bestlam <- best_lmbda_cv[[var.id]]
 
@@ -119,3 +125,4 @@ ggplot(data_long_trunc, aes(x=name, y=value, group=CoefName, color=CoefName)) +
   theme(legend.position='bottom', legend.key.size = unit(.4, 'cm')) + 
   labs(title = "Coefficient Values at Each Lambda", x = "Lambda")
 
+data_long_trunc %>% filter(min(name) == name) %>% filter(value != 0) %>% arrange(desc(abs(value)))

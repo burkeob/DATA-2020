@@ -12,7 +12,11 @@ knitr::opts_chunk$set(root.dir ="/Users/arianaschindler/Documents/2023_spring/DA
 rm(list=ls())
 
 # loading in the cleaned data
-load("/Users/burkeobrien/Desktop/DSI Spring/Stats/DATA-2020/cleaned_data.Rdata")
+wd <- "~/Desktop/DSI Spring/Stats/DATA-2020/"
+
+setwd(wd)
+load("cleaned_data.Rdata")
+
 
 # loading packages
 library(ggplot2)
@@ -115,6 +119,20 @@ compute_props <- function(df, group_col, weight_col) {
   return(d)
 }
 
+# function to make year comparison 
+
+make_year_graph <- function(m) {
+  g <- ggplot(prop_df, aes(fill={{m}}, y=prop, x=year)) + 
+        geom_bar(position="stack", stat="identity") +
+        geom_text(aes(label = scales::percent(prop)), 
+                  position = position_stack(vjust = 0.5), 
+                  size = 2) +
+        labs(title = deparse(substitute(m)),
+             x = "Response",
+             y = "Proportion") + 
+        theme(text = element_text(size = 8))
+}
+
 # wealth_imp ------------
 
 # calculate weighted proportion by group
@@ -124,168 +142,106 @@ prop_df2 <- compute_props(df2, wealth_imp, wgt_comb)
 
 prop_df <- bind_rows(prop_df1 , prop_df2)
 
-# stacked + percent barchart
-plot_wealth_imp <- ggplot(prop_df, aes(fill=wealth_imp, y=prop, x=year)) + 
-  geom_bar(position="stack", stat="identity") +
-  geom_text(aes(label = scales::percent(prop)), 
-            position = position_stack(vjust = 0.5), 
-            size = 2) +
-  labs(title = "Wealth Importance",
-       x = "Response",
-       y = "Proportion") + 
-  theme(text = element_text(size = 8))
+plot_wealth_imp <- make_year_graph(wealth_imp)
+plot_wealth_imp
+
+ggsave("EDA Images/wealth_time.png", device = "png")
 
 
 # parents_imp ------------
-prop_df1 <- compute_props(df1, parents_imp)
-prop_df2 <- compute_props(df2, parents_imp)
+prop_df1 <- compute_props(df1, parents_imp, wgt_comb) 
+prop_df2 <- compute_props(df2, parents_imp, wgt_comb) 
 
-prop_df <- bind_rows(prop_df1 %>% mutate(variable = "1987"),
-                         prop_df2 %>% mutate(variable = "2021"))
+prop_df <- bind_rows(prop_df1 , prop_df2)
 
 # stacked + percent barchart
-plot_parents_imp <- ggplot(prop_df, aes(fill=variable, y=prop, x=parents_imp)) + 
-  geom_bar(position="stack", stat="identity") +
-  geom_text(aes(label = scales::percent(prop)), 
-            position = position_stack(vjust = 0.5), 
-            size = 2) +
-  labs(title = "Parent Education Importance",
-       x = "Response",
-       y = "Proportion") + 
-  theme(text = element_text(size = 8))
-
+plot_parents_imp <- make_year_graph(parents_imp)
+plot_parents_imp
+ggsave("EDA Images/parents_time.png", device = "png")
 
 # educ_imp ------------
-prop_df1 <- compute_props(df1, educ_imp)                  
-prop_df2 <- compute_props(df2, educ_imp)                  
+prop_df1 <- compute_props(df1, educ_imp, wgt_comb) 
+prop_df2 <- compute_props(df2, educ_imp, wgt_comb) 
 
-prop_df <- bind_rows(prop_df1 %>% mutate(variable = "1987"),
-                     prop_df2 %>% mutate(variable = "2021"))
+prop_df <- bind_rows(prop_df1 , prop_df2)
 
 # stacked + percent barchart
-plot_educ_imp <- ggplot(prop_df, aes(fill=variable, y=prop, x=educ_imp)) + 
-  geom_bar(position="stack", stat="identity") +
-  geom_text(aes(label = scales::percent(prop)), 
-            position = position_stack(vjust = 0.5), 
-            size = 2) +
-  labs(title = "Education Importance",                  
-       x = "Response",
-       y = "Proportion") + 
-  theme(text = element_text(size = 8))
+plot_educ_imp <- make_year_graph(educ_imp)
+plot_educ_imp
+ggsave("EDA Images/educ_time.png", device = "png")
 
 
 # hardWork_imp ------------
-prop_df1 <- compute_props(df1, hardWork_imp)                 
-prop_df2 <- compute_props(df2, hardWork_imp)                 
+prop_df1 <- compute_props(df1, hardWork_imp, wgt_comb) 
+prop_df2 <- compute_props(df2, hardWork_imp, wgt_comb) 
 
-prop_df <- bind_rows(prop_df1 %>% mutate(variable = "1987"),
-                     prop_df2 %>% mutate(variable = "2021"))
+prop_df <- bind_rows(prop_df1 , prop_df2)
 
 # stacked + percent barchart
-plot_hardWork_imp <- ggplot(prop_df, aes(fill=variable, y=prop, x=hardWork_imp)) + 
-  geom_bar(position="stack", stat="identity") +
-  geom_text(aes(label = scales::percent(prop)), 
-            position = position_stack(vjust = 0.5), 
-            size = 2) +
-  labs(title = "Hard Work Importance",                 
-       x = "Response",
-       y = "Proportion") + 
-  theme(text = element_text(size = 8))
+plot_hardWork_imp <- make_year_graph(hardWork_imp)
+plot_hardWork_imp
+ggsave("EDA Images/hardwork_time.png", device = "png")
 
 
 # rightPpl_imp ------------
-prop_df1 <- compute_props(df1, rightPpl_imp)                 
-prop_df2 <- compute_props(df2, rightPpl_imp)                
+prop_df1 <- compute_props(df1, rightPpl_imp, wgt_comb) 
+prop_df2 <- compute_props(df2, rightPpl_imp, wgt_comb) 
 
-prop_df <- bind_rows(prop_df1 %>% mutate(variable = "1987"),
-                     prop_df2 %>% mutate(variable = "2021"))
+prop_df <- bind_rows(prop_df1 , prop_df2)
 
 # stacked + percent barchart
-plot_rightPpl_imp <- ggplot(prop_df, aes(fill=variable, y=prop, x=rightPpl_imp)) + 
-  geom_bar(position="stack", stat="identity") +
-  geom_text(aes(label = scales::percent(prop)), 
-            position = position_stack(vjust = 0.5), 
-            size = 2) +
-  labs(title = "Right People Importance",         
-       x = "Response",
-       y = "Proportion") + 
-  theme(text = element_text(size = 8))
+plot_rightPpl_imp <- make_year_graph(rightPpl_imp)
+plot_rightPpl_imp
+ggsave("EDA Images/rightPpl_imp_time.png", device = "png")
+
 
 
 # political_imp ------------
-prop_df1 <- compute_props(df1, political_imp)            
-prop_df2 <- compute_props(df2, political_imp)   
+prop_df1 <- compute_props(df1, political_imp, wgt_comb) 
+prop_df2 <- compute_props(df2, political_imp, wgt_comb) 
 
-prop_df <- bind_rows(prop_df1 %>% mutate(variable = "1987"),
-                     prop_df2 %>% mutate(variable = "2021"))
+prop_df <- bind_rows(prop_df1 , prop_df2)
 
 # stacked + percent barchart
-plot_political_imp <- ggplot(prop_df, aes(fill=variable, y=prop, x=political_imp)) + 
-  geom_bar(position="stack", stat="identity") +
-  geom_text(aes(label = scales::percent(prop)), 
-            position = position_stack(vjust = 0.5), 
-            size = 2) +
-  labs(title = "Political Importance",          
-       x = "Response",
-       y = "Proportion") + 
-  theme(text = element_text(size = 8))
+plot_political_imp <- make_year_graph(political_imp)
+plot_political_imp
+ggsave("EDA Images/political_imp_time.png", device = "png")
 
 
 # race_imp ------------
-prop_df1 <- compute_props(df1, race_imp)              
-prop_df2 <- compute_props(df2, race_imp)
+prop_df1 <- compute_props(df1, race_imp, wgt_comb) 
+prop_df2 <- compute_props(df2, race_imp, wgt_comb) 
 
-prop_df <- bind_rows(prop_df1 %>% mutate(variable = "1987"),
-                     prop_df2 %>% mutate(variable = "2021"))
+prop_df <- bind_rows(prop_df1 , prop_df2)
 
 # stacked + percent barchart
-plot_race_imp <- ggplot(prop_df, aes(fill=variable, y=prop, x=race_imp)) +
-  geom_bar(position="stack", stat="identity") +
-  geom_text(aes(label = scales::percent(prop)), 
-            position = position_stack(vjust = 0.5), 
-            size = 2) +
-  labs(title = "Race Importance",                  
-       x = "Response",
-       y = "Proportion") + 
-  theme(text = element_text(size = 8))
+plot_race_imp <- make_year_graph(race_imp)
+plot_race_imp
+ggsave("EDA Images/race_imp_time.png", device = "png")
 
 
 # religion_imp ------------
-prop_df1 <- compute_props(df1, religion_imp)            
-prop_df2 <- compute_props(df2, religion_imp)         
+prop_df1 <- compute_props(df1, religion_imp, wgt_comb) 
+prop_df2 <- compute_props(df2, religion_imp, wgt_comb) 
 
-prop_df <- bind_rows(prop_df1 %>% mutate(variable = "1987"),
-                     prop_df2 %>% mutate(variable = "2021"))
+prop_df <- bind_rows(prop_df1 , prop_df2)
 
 # stacked + percent barchart
-plot_religion_imp <- ggplot(prop_df, aes(fill=variable, y=prop, x=religion_imp)) + 
-  geom_bar(position="stack", stat="identity") +
-  geom_text(aes(label = scales::percent(prop)), 
-            position = position_stack(vjust = 0.5), 
-            size = 2) +
-  labs(title = "Religion Importance",                
-       x = "Response",
-       y = "Proportion") + 
-  theme(text = element_text(size = 8))
+plot_religion_imp <- make_year_graph(religion_imp)
+plot_religion_imp
+ggsave("EDA Images/religion_imp_time.png", device = "png")
 
 
 # sex_imp ------------
-prop_df1 <- compute_props(df1, sex_imp)        
-prop_df2 <- compute_props(df2, sex_imp) 
+prop_df1 <- compute_props(df1, sex_imp, wgt_comb) 
+prop_df2 <- compute_props(df2, sex_imp, wgt_comb) 
 
-prop_df <- bind_rows(prop_df1 %>% mutate(variable = "1987"),
-                     prop_df2 %>% mutate(variable = "2021"))
+prop_df <- bind_rows(prop_df1 , prop_df2)
 
 # stacked + percent barchart
-plot_sex_imp <- ggplot(prop_df, aes(fill=variable, y=prop, x=sex_imp)) + 
-  geom_bar(position="stack", stat="identity") +
-  geom_text(aes(label = scales::percent(prop)), 
-            position = position_stack(vjust = 0.5), 
-            size = 2) +
-  labs(title = "Sex Importance",          
-       x = "Response",
-       y = "Proportion") + 
-  theme(text = element_text(size = 8))
+plot_sex_imp <- make_year_graph(sex_imp)
+plot_sex_imp
+ggsave("EDA Images/sex_imp_time.png", device = "png")
 
 
 # arrange the plots in a 3 by 3 grid using arrangeGrob
@@ -294,7 +250,7 @@ targets_w_na <- grid.arrange(arrangeGrob(plot_wealth_imp, plot_parents_imp, plot
              arrangeGrob(plot_race_imp, plot_religion_imp, plot_sex_imp, ncol = 3),
              nrow = 3)
 
-#ggsave("targets_with_missing.png", plot = targets_w_na)
+ggsave("EDA Images/Combined Year Plot.png", plot = targets_w_na)
 ```
 
 We can see from the grid above that the percentage of people who took the survey in 1987 did not respond to a given question was about 14-17%, and that percentage shot up to about 53-55% in 2021. Next, we can account for this to see if any features had a drastic difference between responses from 1987 and 2021.

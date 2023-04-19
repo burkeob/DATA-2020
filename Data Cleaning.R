@@ -1,10 +1,10 @@
 library(tidyverse)
 library(readxl)
 
-setwd("~/Desktop/DSI Spring/Stats/Final Project")
+setwd("~/Desktop/DSI Spring/Stats/DATA-2020/")
 
 df <- read_excel("GSS.xlsx") |>
-  filter(year == 1987 | year == 2021) |> 
+  filter(year == 1987 | (year == 2021 & ballot == "Ballot c") | (year == 2021 & ballot == "Ballot b")) |> 
   select(-c(ballot, id_))
 
 # make combined weight column

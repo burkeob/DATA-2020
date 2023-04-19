@@ -1,0 +1,694 @@
+---
+title: "final_eda"
+output: pdf_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(root.dir ="/Users/arianaschindler/Documents/2023_spring/DATA2020/final_project")
+```
+
+```{r}
+# clearing environment
+rm(list=ls())
+
+# loading in the cleaned data
+load("/Users/burkeobrien/Desktop/DSI Spring/Stats/DATA-2020/cleaned_data.Rdata")
+
+# loading packages
+library(ggplot2)
+library(dplyr)
+library(tidyverse)
+library(ggplot2)
+library(gridExtra)
+
+# turning race feature into categorical factor
+df <- df %>%
+  mutate(race = ifelse(race %in% c(".n:  No answer" ,
+                                 ".s:  Skipped on Web", 
+                                 ".i:  Inapplicable",
+                                 ".d:  Do not Know/Cannot Choose"), "missing", race)) %>%
+  mutate(race = as.factor(race))
+
+# turning zodiac feature into categorical factor
+df <- df %>%
+  mutate(zodiac = ifelse(zodiac %in% c(".n:  No answer" ,
+                                   ".s:  Skipped on Web", 
+                                   ".i:  Inapplicable",
+                                   ".d:  Do not Know/Cannot Choose"), "missing", zodiac)) %>%
+  mutate(zodiac = as.factor(zodiac))
+
+# turning nulls into "No Response" for possible target features
+df <- df %>%
+  mutate(wealth_imp = ifelse(is.na(wealth_imp), "No Response", as.character(wealth_imp))) %>%
+  mutate(wealth_imp = factor(wealth_imp))
+
+df <- df %>%
+  mutate(parents_imp = ifelse(is.na(parents_imp), "No Response", as.character(parents_imp))) %>%
+  mutate(parents_imp = factor(parents_imp))
+
+df <- df %>%
+  mutate(educ_imp = ifelse(is.na(educ_imp), "No Response", as.character(educ_imp))) %>%
+  mutate(educ_imp = factor(educ_imp))
+
+df <- df %>%
+  mutate(hardWork_imp = ifelse(is.na(hardWork_imp), "No Response", as.character(hardWork_imp))) %>%
+  mutate(hardWork_imp = factor(hardWork_imp))
+
+df <- df %>%
+  mutate(rightPpl_imp = ifelse(is.na(rightPpl_imp), "No Response", as.character(rightPpl_imp))) %>%
+  mutate(rightPpl_imp = factor(rightPpl_imp))
+
+df <- df %>%
+  mutate(political_imp = ifelse(is.na(political_imp), "No Response", as.character(political_imp))) %>%
+  mutate(political_imp = factor(political_imp))
+
+df <- df %>%
+  mutate(race_imp = ifelse(is.na(race_imp), "No Response", as.character(race_imp))) %>%
+  mutate(race_imp = factor(race_imp))
+
+df <- df %>%
+  mutate(religion_imp = ifelse(is.na(religion_imp), "No Response", as.character(religion_imp))) %>%
+  mutate(religion_imp = factor(religion_imp))
+
+df <- df %>%
+  mutate(sex_imp = ifelse(is.na(sex_imp), "No Response", as.character(sex_imp))) %>%
+  mutate(sex_imp = factor(sex_imp))
+
+
+# splitting data into two dfs for each year
+df1 <- df %>%
+  filter(df$year=='1987')
+df2 <- df %>%
+  filter(df$year=='2021')
+```
+
+```{r}
+# extracting dimensions for rows and columns
+# 1987 data
+dim_rows1 <- dim(df1)[1]
+dim_cols1 <- dim(df1)[2]
+
+#2021 data
+dim_rows2 <- dim(df2)[1]
+dim_cols2 <- dim(df2)[2]
+
+# printing dimensions
+cat(paste('Number of Rows in Survey Data from 1987:', dim_rows1, '\nNumber of Columns:', dim_cols1, '\n', '\nNumber of Rows in Survey Data from 2021:', dim_rows2, '\nNumber of Columns:', dim_cols2))
+```
+
+
+```{r}
+#==========================================
+# CHECKING OUT POSSIBLE TARGET FEATURES
+#==========================================
+
+# function to calculate the proportions of any categorical feature
+
+
+compute_props <- function(df, group_col, weight_col) {
+  d <- {{df}} %>%
+    group_by({{ group_col }}, year) %>%
+    summarize(prop = sum({{ weight_col }}, na.rm = TRUE)) %>%
+    ungroup() %>%
+    mutate(prop = prop / sum(prop))
+  
+  return(d)
+}
+
+# wealth_imp ------------
+
+# calculate weighted proportion by group
+
+prop_df1 <- compute_props(df1, wealth_imp, wgt_comb) 
+prop_df2 <- compute_props(df2, wealth_imp, wgt_comb)
+
+prop_df <- bind_rows(prop_df1 , prop_df2)
+
+# stacked + percent barchart
+plot_wealth_imp <- ggplot(prop_df, aes(fill=wealth_imp, y=prop, x=year)) + 
+  geom_bar(position="stack", stat="identity") +
+  geom_text(aes(label = scales::percent(prop)), 
+            position = position_stack(vjust = 0.5), 
+            size = 2) +
+  labs(title = "Wealth Importance",
+       x = "Response",
+       y = "Proportion") + 
+  theme(text = element_text(size = 8))
+
+
+# parents_imp ------------
+prop_df1 <- compute_props(df1, parents_imp)
+prop_df2 <- compute_props(df2, parents_imp)
+
+prop_df <- bind_rows(prop_df1 %>% mutate(variable = "1987"),
+                         prop_df2 %>% mutate(variable = "2021"))
+
+# stacked + percent barchart
+plot_parents_imp <- ggplot(prop_df, aes(fill=variable, y=prop, x=parents_imp)) + 
+  geom_bar(position="stack", stat="identity") +
+  geom_text(aes(label = scales::percent(prop)), 
+            position = position_stack(vjust = 0.5), 
+            size = 2) +
+  labs(title = "Parent Education Importance",
+       x = "Response",
+       y = "Proportion") + 
+  theme(text = element_text(size = 8))
+
+
+# educ_imp ------------
+prop_df1 <- compute_props(df1, educ_imp)                  
+prop_df2 <- compute_props(df2, educ_imp)                  
+
+prop_df <- bind_rows(prop_df1 %>% mutate(variable = "1987"),
+                     prop_df2 %>% mutate(variable = "2021"))
+
+# stacked + percent barchart
+plot_educ_imp <- ggplot(prop_df, aes(fill=variable, y=prop, x=educ_imp)) + 
+  geom_bar(position="stack", stat="identity") +
+  geom_text(aes(label = scales::percent(prop)), 
+            position = position_stack(vjust = 0.5), 
+            size = 2) +
+  labs(title = "Education Importance",                  
+       x = "Response",
+       y = "Proportion") + 
+  theme(text = element_text(size = 8))
+
+
+# hardWork_imp ------------
+prop_df1 <- compute_props(df1, hardWork_imp)                 
+prop_df2 <- compute_props(df2, hardWork_imp)                 
+
+prop_df <- bind_rows(prop_df1 %>% mutate(variable = "1987"),
+                     prop_df2 %>% mutate(variable = "2021"))
+
+# stacked + percent barchart
+plot_hardWork_imp <- ggplot(prop_df, aes(fill=variable, y=prop, x=hardWork_imp)) + 
+  geom_bar(position="stack", stat="identity") +
+  geom_text(aes(label = scales::percent(prop)), 
+            position = position_stack(vjust = 0.5), 
+            size = 2) +
+  labs(title = "Hard Work Importance",                 
+       x = "Response",
+       y = "Proportion") + 
+  theme(text = element_text(size = 8))
+
+
+# rightPpl_imp ------------
+prop_df1 <- compute_props(df1, rightPpl_imp)                 
+prop_df2 <- compute_props(df2, rightPpl_imp)                
+
+prop_df <- bind_rows(prop_df1 %>% mutate(variable = "1987"),
+                     prop_df2 %>% mutate(variable = "2021"))
+
+# stacked + percent barchart
+plot_rightPpl_imp <- ggplot(prop_df, aes(fill=variable, y=prop, x=rightPpl_imp)) + 
+  geom_bar(position="stack", stat="identity") +
+  geom_text(aes(label = scales::percent(prop)), 
+            position = position_stack(vjust = 0.5), 
+            size = 2) +
+  labs(title = "Right People Importance",         
+       x = "Response",
+       y = "Proportion") + 
+  theme(text = element_text(size = 8))
+
+
+# political_imp ------------
+prop_df1 <- compute_props(df1, political_imp)            
+prop_df2 <- compute_props(df2, political_imp)   
+
+prop_df <- bind_rows(prop_df1 %>% mutate(variable = "1987"),
+                     prop_df2 %>% mutate(variable = "2021"))
+
+# stacked + percent barchart
+plot_political_imp <- ggplot(prop_df, aes(fill=variable, y=prop, x=political_imp)) + 
+  geom_bar(position="stack", stat="identity") +
+  geom_text(aes(label = scales::percent(prop)), 
+            position = position_stack(vjust = 0.5), 
+            size = 2) +
+  labs(title = "Political Importance",          
+       x = "Response",
+       y = "Proportion") + 
+  theme(text = element_text(size = 8))
+
+
+# race_imp ------------
+prop_df1 <- compute_props(df1, race_imp)              
+prop_df2 <- compute_props(df2, race_imp)
+
+prop_df <- bind_rows(prop_df1 %>% mutate(variable = "1987"),
+                     prop_df2 %>% mutate(variable = "2021"))
+
+# stacked + percent barchart
+plot_race_imp <- ggplot(prop_df, aes(fill=variable, y=prop, x=race_imp)) +
+  geom_bar(position="stack", stat="identity") +
+  geom_text(aes(label = scales::percent(prop)), 
+            position = position_stack(vjust = 0.5), 
+            size = 2) +
+  labs(title = "Race Importance",                  
+       x = "Response",
+       y = "Proportion") + 
+  theme(text = element_text(size = 8))
+
+
+# religion_imp ------------
+prop_df1 <- compute_props(df1, religion_imp)            
+prop_df2 <- compute_props(df2, religion_imp)         
+
+prop_df <- bind_rows(prop_df1 %>% mutate(variable = "1987"),
+                     prop_df2 %>% mutate(variable = "2021"))
+
+# stacked + percent barchart
+plot_religion_imp <- ggplot(prop_df, aes(fill=variable, y=prop, x=religion_imp)) + 
+  geom_bar(position="stack", stat="identity") +
+  geom_text(aes(label = scales::percent(prop)), 
+            position = position_stack(vjust = 0.5), 
+            size = 2) +
+  labs(title = "Religion Importance",                
+       x = "Response",
+       y = "Proportion") + 
+  theme(text = element_text(size = 8))
+
+
+# sex_imp ------------
+prop_df1 <- compute_props(df1, sex_imp)        
+prop_df2 <- compute_props(df2, sex_imp) 
+
+prop_df <- bind_rows(prop_df1 %>% mutate(variable = "1987"),
+                     prop_df2 %>% mutate(variable = "2021"))
+
+# stacked + percent barchart
+plot_sex_imp <- ggplot(prop_df, aes(fill=variable, y=prop, x=sex_imp)) + 
+  geom_bar(position="stack", stat="identity") +
+  geom_text(aes(label = scales::percent(prop)), 
+            position = position_stack(vjust = 0.5), 
+            size = 2) +
+  labs(title = "Sex Importance",          
+       x = "Response",
+       y = "Proportion") + 
+  theme(text = element_text(size = 8))
+
+
+# arrange the plots in a 3 by 3 grid using arrangeGrob
+targets_w_na <- grid.arrange(arrangeGrob(plot_wealth_imp, plot_parents_imp, plot_educ_imp, ncol = 3),
+             arrangeGrob(plot_hardWork_imp, plot_rightPpl_imp, plot_political_imp, ncol = 3),
+             arrangeGrob(plot_race_imp, plot_religion_imp, plot_sex_imp, ncol = 3),
+             nrow = 3)
+
+#ggsave("targets_with_missing.png", plot = targets_w_na)
+```
+
+We can see from the grid above that the percentage of people who took the survey in 1987 did not respond to a given question was about 14-17%, and that percentage shot up to about 53-55% in 2021. Next, we can account for this to see if any features had a drastic difference between responses from 1987 and 2021.
+
+```{r}
+# wealth_imp ------------
+sub_df1 <- subset(df1, wealth_imp != "No Response")
+sub_df2 <- subset(df2, wealth_imp != "No Response")
+
+prop_df1 <- compute_props(sub_df1, wealth_imp)
+prop_df2 <- compute_props(sub_df2, wealth_imp)
+
+prop_df <- bind_rows(prop_df1 %>% mutate(variable = "1987"),
+                         prop_df2 %>% mutate(variable = "2021"))
+
+# stacked + percent barchart
+wealth_no_na <- ggplot(prop_df, aes(fill=variable, y=prop, x=wealth_imp)) + 
+  geom_bar(position="stack", stat="identity") +
+  geom_text(aes(label = scales::percent(prop)), 
+            position = position_stack(vjust = 0.5), 
+            size = 2) +
+  labs(title = "Wealth Importance",
+       x = "Response",
+       y = "Proportion") + 
+  theme(text = element_text(size = 8))
+
+
+# parents_imp ------------
+sub_df1 <- subset(df1, parents_imp != "No Response")
+sub_df2 <- subset(df2, parents_imp != "No Response")
+
+prop_df1 <- compute_props(sub_df1, parents_imp)
+prop_df2 <- compute_props(sub_df2, parents_imp)
+
+prop_df <- bind_rows(prop_df1 %>% mutate(variable = "1987"),
+                         prop_df2 %>% mutate(variable = "2021"))
+
+# stacked + percent barchart
+parents_no_na <- ggplot(prop_df, aes(fill=variable, y=prop, x=parents_imp)) + 
+  geom_bar(position="stack", stat="identity") +
+  geom_text(aes(label = scales::percent(prop)), 
+            position = position_stack(vjust = 0.5), 
+            size = 2) +
+  labs(title = "Parent Education Importance",
+       x = "Response",
+       y = "Proportion") + 
+  theme(text = element_text(size = 8))
+
+
+# wealth_imp ------------
+sub_df1 <- subset(df1, educ_imp != "No Response")
+sub_df2 <- subset(df2, educ_imp != "No Response")
+
+prop_df1 <- compute_props(sub_df1, educ_imp)
+prop_df2 <- compute_props(sub_df2, educ_imp)
+
+prop_df <- bind_rows(prop_df1 %>% mutate(variable = "1987"),
+                         prop_df2 %>% mutate(variable = "2021"))
+
+# stacked + percent barchart
+educ_no_na <- ggplot(prop_df, aes(fill=variable, y=prop, x=educ_imp)) + 
+  geom_bar(position="stack", stat="identity") +
+  geom_text(aes(label = scales::percent(prop)), 
+            position = position_stack(vjust = 0.5), 
+            size = 2) +
+  labs(title = "Education Importance",
+       x = "Response",
+       y = "Proportion") + 
+  theme(text = element_text(size = 8))
+
+
+# hardWork_imp ------------
+sub_df1 <- subset(df1, hardWork_imp != "No Response")
+sub_df2 <- subset(df2, hardWork_imp != "No Response")
+
+prop_df1 <- compute_props(sub_df1, hardWork_imp)
+prop_df2 <- compute_props(sub_df2, hardWork_imp)
+
+prop_df <- bind_rows(prop_df1 %>% mutate(variable = "1987"),
+                         prop_df2 %>% mutate(variable = "2021"))
+
+# stacked + percent barchart
+harkwork_no_na <- ggplot(prop_df, aes(fill=variable, y=prop, x=hardWork_imp)) + 
+  geom_bar(position="stack", stat="identity") +
+  geom_text(aes(label = scales::percent(prop)), 
+            position = position_stack(vjust = 0.5), 
+            size = 2) +
+  labs(title = "Hard Work Importance",
+       x = "Response",
+       y = "Proportion") + 
+  theme(text = element_text(size = 8))
+
+
+# rightPpl_imp ------------
+sub_df1 <- subset(df1, rightPpl_imp != "No Response")
+sub_df2 <- subset(df2, rightPpl_imp != "No Response")
+
+prop_df1 <- compute_props(sub_df1, rightPpl_imp)
+prop_df2 <- compute_props(sub_df2, rightPpl_imp)
+
+prop_df <- bind_rows(prop_df1 %>% mutate(variable = "1987"),
+                         prop_df2 %>% mutate(variable = "2021"))
+
+# stacked + percent barchart
+rightPpl_no_na <- ggplot(prop_df, aes(fill=variable, y=prop, x=rightPpl_imp)) + 
+  geom_bar(position="stack", stat="identity") +
+  geom_text(aes(label = scales::percent(prop)), 
+            position = position_stack(vjust = 0.5), 
+            size = 2) +
+  labs(title = "Right People Importance",
+       x = "Response",
+       y = "Proportion") + 
+  theme(text = element_text(size = 8))
+
+
+# political_imp ------------
+sub_df1 <- subset(df1, political_imp != "No Response")
+sub_df2 <- subset(df2, political_imp != "No Response")
+
+prop_df1 <- compute_props(sub_df1, political_imp)
+prop_df2 <- compute_props(sub_df2, political_imp)
+
+prop_df <- bind_rows(prop_df1 %>% mutate(variable = "1987"),
+                         prop_df2 %>% mutate(variable = "2021"))
+
+# stacked + percent barchart
+political_no_na <- ggplot(prop_df, aes(fill=variable, y=prop, x=political_imp)) + 
+  geom_bar(position="stack", stat="identity") +
+  geom_text(aes(label = scales::percent(prop)), 
+            position = position_stack(vjust = 0.5), 
+            size = 2) +
+  labs(title = "Political Importance",
+       x = "Response",
+       y = "Proportion") + 
+  theme(text = element_text(size = 8))
+
+
+# race_imp ------------
+sub_df1 <- subset(df1, race_imp != "No Response")
+sub_df2 <- subset(df2, race_imp != "No Response")
+
+prop_df1 <- compute_props(sub_df1, race_imp)
+prop_df2 <- compute_props(sub_df2, race_imp)
+
+prop_df <- bind_rows(prop_df1 %>% mutate(variable = "1987"),
+                         prop_df2 %>% mutate(variable = "2021"))
+
+# stacked + percent barchart
+race_no_na <- ggplot(prop_df, aes(fill=variable, y=prop, x=race_imp)) + 
+  geom_bar(position="stack", stat="identity") +
+  geom_text(aes(label = scales::percent(prop)), 
+            position = position_stack(vjust = 0.5), 
+            size = 2) +
+  labs(title = "Race Importance",
+       x = "Response",
+       y = "Proportion") + 
+  theme(text = element_text(size = 8))
+
+
+# religion_imp ------------
+sub_df1 <- subset(df1, religion_imp != "No Response")
+sub_df2 <- subset(df2, religion_imp != "No Response")
+
+prop_df1 <- compute_props(sub_df1, religion_imp)
+prop_df2 <- compute_props(sub_df2, religion_imp)
+
+prop_df <- bind_rows(prop_df1 %>% mutate(variable = "1987"),
+                         prop_df2 %>% mutate(variable = "2021"))
+
+# stacked + percent barchart
+religion_no_na <- ggplot(prop_df, aes(fill=variable, y=prop, x=religion_imp)) + 
+  geom_bar(position="stack", stat="identity") +
+  geom_text(aes(label = scales::percent(prop)), 
+            position = position_stack(vjust = 0.5), 
+            size = 2) +
+  labs(title = "Religion Importance",
+       x = "Response",
+       y = "Proportion") + 
+  theme(text = element_text(size = 8))
+
+
+# sex_imp ------------
+sub_df1 <- subset(df1, sex_imp != "No Response")
+sub_df2 <- subset(df2, sex_imp != "No Response")
+
+prop_df1 <- compute_props(sub_df1, sex_imp)
+prop_df2 <- compute_props(sub_df2, sex_imp)
+
+prop_df <- bind_rows(prop_df1 %>% mutate(variable = "1987"),
+                         prop_df2 %>% mutate(variable = "2021"))
+
+# stacked + percent barchart
+sex_no_na <- ggplot(prop_df, aes(fill=variable, y=prop, x=sex_imp)) + 
+  geom_bar(position="stack", stat="identity") +
+  geom_text(aes(label = scales::percent(prop)), 
+            position = position_stack(vjust = 0.5), 
+            size = 2) +
+  labs(title = "Sex Importance",
+       x = "Response",
+       y = "Proportion") + 
+  theme(text = element_text(size = 8))
+
+
+# arrange the plots in a 3 by 3 grid using arrangeGrob
+targets_wo_na <- grid.arrange(arrangeGrob(wealth_no_na, parents_no_na, educ_no_na, ncol = 3),
+             arrangeGrob(harkwork_no_na, rightPpl_no_na, political_no_na, ncol = 3),
+             arrangeGrob(race_no_na, religion_no_na, sex_no_na, ncol = 3),
+             nrow = 3)
+
+#ggsave("targets_without_missing.png", plot = targets_wo_na)
+```
+
+This gives us a much better view of what general public opinions were of different importance features during the two recorded years. We can see in features such as "Parent Education Importance", "Right People Importance", and "Hard Work Importance" that the opinions between the two time periods have not changed much. We start to see a little more difference in responses when we look at features like "Wealth Importance", where in 1987, there was only a ~3% difference in the proportion of people agreeing and disagreeing with the importance feature, whereas in 2021, the difference in proportions is just over 20%, with the majority of responses answering that they believed that having a wealthy family is necessary to get ahead in life. We can see similar differences in the features "Religion Importance", "Political Importance", and "Race Importance".
+
+Now we can check out the distributions of other features in our data.
+
+```{r, out.width="50%", out.height="50%", include=TRUE, fig.align="center"}
+# age distribution for different years
+df1_no_na <- drop_na(df1)
+df2_no_na <- drop_na(df2)
+
+df1_age <- ggplot(data = df1_no_na, aes(x = age)) + 
+  geom_histogram(bins = 30) +
+  labs(title = "Histogram of Respondent Age in 1987", x = "Respondent Age", y = "Frequency") +
+  theme(text = element_text(size = 8))
+
+df2_age <- ggplot(data = df2_no_na, aes(x = age)) + 
+  geom_histogram(bins = 30) +
+  labs(title = "Histogram of Respondent Age in 2021", x = "Respondent Age", y = "Frequency") +
+  theme(text = element_text(size = 8))
+
+# arrange the plots in a 3 by 3 grid using arrangeGrob
+age_dist_hist <- grid.arrange(arrangeGrob(df1_age, df2_age, ncol = 2))
+
+ggsave("age_histogram.png", plot = age_dist_hist, width=10, height=6)
+```
+
+
+```{r}
+summary(df1$age)
+```
+
+```{r}
+summary(df2$age)
+```
+
+Through analysis, we need to keep in mind that while there are 34 years between the survey dates, there is a 12 year difference in the median age of respondents and a 7 year difference in the mean age of respondents, despite the max and min being the same in both years.
+
+```{r}
+df <- drop_na(df)
+age_boxplot <- ggplot(df, aes(x=factor(year), y=age)) + 
+  geom_boxplot() + 
+  labs(x = "Year", y = "Age", title='Boxplot Distributions of Age in Varying Years') +
+  theme(text = element_text(size = 8))
+
+age_boxplot
+#ggsave("age_boxplot.png", plot = age_boxplot, width=10, height=6)
+```
+
+```{r}
+# education distribution for different years
+df1_educ <- ggplot(data = df1_no_na, aes(x = educ)) + 
+  geom_histogram(bins = 30) +
+  labs(title = "Histogram of Respondent Education in 1987", x = "Years of Respondent Education", y = "Frequency") +
+  theme(text = element_text(size = 8))
+
+df2_educ <- ggplot(data = df2_no_na, aes(x = educ)) + 
+  geom_histogram(bins = 30) +
+  labs(title = "Histogram of Respondent Education in 2021", x = "Years of Respondent Education", y = "Frequency") +
+  theme(text = element_text(size = 8))
+
+# arrange the plots in a 2 by 2 grid using arrangeGrob
+ educ_hist <- grid.arrange(arrangeGrob(df1_educ, df2_educ, ncol = 2))
+ 
+#ggsave("educ_histograms.png", plot = educ_hist, width=10, height=6)
+```
+
+```{r}
+# work status distribution
+df1_wrkstat <- ggplot(data = df1_no_na, aes(x = wrkstat)) +
+  geom_bar(fill = "tomato4") +
+  labs(title="Respondent Work Status in 1987", 
+       x="Work Status", y="Count") +
+  scale_x_discrete(labels = c("In school" = "In School",
+                             "Keeping house" = "Keeping house",
+                             "missing" = "Missing",
+                             "Other" = "Other",
+                             "Retired" = "Retired",
+                             "Unemployed, laid off, looking for work" = "Unemployed",
+                             "With a job, but not at work because of temporary illness, vacation, strike" = "Not Working",
+                             "Working full time" = "Full Time",
+                             "Working part time" = "Part Time")) +
+  coord_flip() +
+  theme(text = element_text(size = 8))
+
+df2_wrkstat <- ggplot(data = df2_no_na, aes(x = wrkstat)) +
+  geom_bar(fill = "tomato4") +
+  labs(title="Respondent Work Status in 2021", 
+       x="Work Status", y="Count") +
+  scale_x_discrete(labels = c("In school" = "In School",
+                             "Keeping house" = "Keeping house",
+                             "missing" = "Missing",
+                             "Other" = "Other",
+                             "Retired" = "Retired",
+                             "Unemployed, laid off, looking for work" = "Unemployed",
+                             "With a job, but not at work because of temporary illness, vacation, strike" = "Not Working",
+                             "Working full time" = "Full Time",
+                             "Working part time" = "Part Time")) +
+  coord_flip() +
+  theme(text = element_text(size = 8))
+
+# arrange the plots in a 2 by 2 grid using arrangeGrob
+wrkstat_hist <- grid.arrange(arrangeGrob(df1_wrkstat, ncol = 1),
+             arrangeGrob(df2_wrkstat, ncol = 1))
+
+#ggsave("wrkstat_histogram.png", plot = wrkstat_hist)
+```
+
+```{r}
+prop_df1 <- compute_props(df1_no_na, wrkstat)
+prop_df2 <- compute_props(df2_no_na, wrkstat)
+
+prop_df <- bind_rows(prop_df1 %>% mutate(variable = "1987"),
+                         prop_df2 %>% mutate(variable = "2021"))
+
+# stacked + percent barchart
+wrkstat_fig <- ggplot(prop_df, aes(fill=variable, y=prop, x=wrkstat)) + 
+  geom_bar(position="stack", stat="identity") +
+  geom_text(aes(label = scales::percent(prop)), 
+            position = position_stack(vjust = 0.5), 
+            size = 2) +
+  labs(title = "Work Status of Respondents in 1987 vs 2021",
+       x = "Status",
+       y = "Proportion") + 
+  scale_x_discrete(labels = c("In school" = "In School",
+                             "Keeping house" = "Keeping house",
+                             "missing" = "Missing",
+                             "Other" = "Other",
+                             "Retired" = "Retired",
+                             "Unemployed, laid off, looking for work" = "Unemployed",
+                             "With a job, but not at work because of temporary illness, vacation, strike" = "Not Working",
+                             "Working full time" = "Full Time",
+                             "Working part time" = "Part Time")) +
+  theme(text = element_text(size = 8))
+
+wrkstat_fig
+#ggsave("wrkstat_stacked_props.png", plot = wrkstat_fig, width=10, height=6)
+#levels(df$wrkstat)
+```
+
+One interesting observation at this point is if we look at the distribution of age, the survey in 2021 had a much higher number of retirement-aged respondents which helps explain the large difference in proportion of retired respondents between the two timeframes.
+
+```{r}
+prop_df1 <- compute_props(df1_no_na, marital)
+prop_df2 <- compute_props(df2_no_na, marital)
+
+prop_df <- bind_rows(prop_df1 %>% mutate(variable = "1987"),
+                         prop_df2 %>% mutate(variable = "2021"))
+
+# stacked + percent barchart
+marital_fig <- ggplot(prop_df, aes(fill=variable, y=prop, x=marital)) + 
+  geom_bar(position="stack", stat="identity") +
+  geom_text(aes(label = scales::percent(prop)), 
+            position = position_stack(vjust = 0.5), 
+            size = 2) +
+  labs(title = "Marital Status of Respondents in 1987 vs 2021",
+       x = "Status",
+       y = "Proportion") + 
+  theme(text = element_text(size = 8))
+
+marital_fig
+#ggsave("marital_dist.png", plot = marital_fig)
+#levels(df$marital)
+```
+
+```{r}
+prop_df1 <- compute_props(df1_no_na, sex)
+prop_df2 <- compute_props(df2_no_na, sex)
+
+prop_df <- bind_rows(prop_df1 %>% mutate(variable = "1987"),
+                         prop_df2 %>% mutate(variable = "2021"))
+
+# stacked + percent barchart
+sex_proportions <- ggplot(prop_df, aes(fill=variable, y=prop, x=sex)) + 
+  geom_bar(position="stack", stat="identity") +
+  geom_text(aes(label = scales::percent(prop)), 
+            position = position_stack(vjust = 0.5), 
+            size = 2) +
+  labs(title = "Sex Proportion of Respondents in 1987 vs 2021",
+       x = "Response",
+       y = "Proportion") + 
+  theme(text = element_text(size = 8))
+
+sex_proportions
+ggsave("sex_proportions.png", plot = sex_proportions, width=8, height=6)
+#levels(df$marital)
+```

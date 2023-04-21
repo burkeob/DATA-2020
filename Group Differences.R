@@ -5,6 +5,7 @@ library(ggplot2)
 library(MASS)
 library(haven)
 library(glmnet)
+library(ggthemes)
 
 library(survey)
 
@@ -45,11 +46,12 @@ for (q in colnames(df_variables)){
           geom_errorbar(aes(ymin = qq - 1.96 * se/sqrt(3), ymax = qq + 1.96 * se/sqrt(3)), position = position_dodge(width = 0.9), width = 0.2) +
           facet_wrap(~ year,) +
           xlab(c) +
-          labs(title = paste0(q, ", ", c))
+          labs(title = paste0(q, ", ", c)) + 
+      theme_few()
     
     
     
-    ggsave(paste0("Group Differences/", q, "/", c, "test.png"))
+    ggsave(paste0("Group Differences/", q, "/", c, ".png"))
 
   }
   

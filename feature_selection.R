@@ -20,14 +20,16 @@ set.seed(1)
 ####################################################
 
 make.mtrx <- function (df){
-  mtrx <- model.matrix(var ~ year+wrkstat+marital+age+race+educ+sex+born+income+region+partyid+relig+zodiac, df)
+  mtrx <- model.matrix(var ~ year+wrkstat+marital+age+race+educ+sex+born+income+region+partyid+relig, df)
   return (mtrx)
 }
 
 load('cleaned_data.Rdata')
 
+#df <- df %>% filter(relig != "Other eastern religions")
+
 df_covariates <- df %>% dplyr::select(year, wrkstat, marital, age, race, educ, sex, born, income,
-                                      region, partyid, relig, zodiac, vstrat, vpsu, wgt_comb)
+                                      region, partyid, relig, vstrat, vpsu, wgt_comb)
 
 df_variables <- df %>% dplyr::select(wealth_imp, sex_imp, parents_imp, educ_imp, hardWork_imp, rightPpl_imp,
                                      political_imp, race_imp, religion_imp)
@@ -100,7 +102,7 @@ for (col in df_variables){
 }
 
 # Testing out some vizs for Lasso Regression
-var.id = 6
+var.id = 9
 
 bestlam <- best_lmbda_cv[[var.id]]
 
@@ -118,11 +120,20 @@ data_long_e$name <- as.numeric(data_long_e$name)
 
 data_long_trunc <- data_long_e %>% filter(name >= bestlam) %>% filter(value != 0)
 
-ggplot(data_long_trunc, aes(x=name, y=value, group=CoefName, color=CoefName)) +
-  geom_line() + 
-  geom_hline(aes(yintercept=0)) +
-  geom_vline(aes(xintercept=bestlam)) +
-  theme(legend.position='bottom', legend.key.size = unit(.4, 'cm')) + 
-  labs(title = "Coefficient Values at Each Lambda", x = "Lambda")
+# Lasso Coef Value Trajectory Line Plot:
+#ggplot(data_long_trunc, aes(x=name, y=value, group=CoefName, color=CoefName)) +
+#  geom_line() + 
+#  geom_hline(aes(yintercept=0)) +
+#  geom_vline(aes(xintercept=bestlam)) +
+#  theme(legend.position='bottom', legend.key.size = unit(.4, 'cm')) + 
+#  labs(title = "Coefficient Values at Each Lambda", x = "Lambda")
 
-data_long_trunc %>% filter(min(name) == name) %>% filter(value != 0) %>% arrange(desc(abs(value)))
+opt.lmbda.coefs <- data_long_trunc %>% filter(min(name) == name) %>% filter(value != 0) %>% arrange(desc(abs(value)))
+
+# Lasso Optimal Coefficient Bar Plot:
+ggplot(opt.lmbda.coefs, aes(y=reorder(CoefName, abs(value)), x=value)) +
+  geom_col() + 
+  geom_vline(aes(xintercept=0)) + 
+  labs(y='Covariate Name', x='Covariate Value', title='Optimal Lasso Coefficients')
+
+df %>% filter(relig == "Orthodox-christian") %>% dplyr::select(religion_imp) 

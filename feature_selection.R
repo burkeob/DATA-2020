@@ -26,6 +26,16 @@ make.mtrx <- function (df){
 
 load('cleaned_data.Rdata')
 
+df = subset(df, select = -c(wtssall,wtssnrps) )
+df <- within(df, relig <- relevel(relig, ref = 'missing'))
+df <- within(df, marital <- relevel(marital, ref ='missing'))
+df <- within(df, partyid <- relevel(partyid, ref ='missing'))
+df <- within(df, wrkstat <- relevel(wrkstat, ref ='missing'))
+df <- within(df, income <- relevel(income, ref ='missing'))
+df <- within(df, sex <- relevel(sex, ref ='missing'))
+
+df <- df %>% filter(relig != "Other eastern religions")
+
 df_covariates <- df %>% dplyr::select(year, wrkstat, marital, age, race, educ, sex, born, income,
                                       region, partyid, relig, vstrat, vpsu, wgt_comb)
 
@@ -100,29 +110,46 @@ for (col in df_variables){
 }
 
 # Testing out some vizs for Lasso Regression
-var.id = 6
+var.id = 3
 
-bestlam <- best_lmbda_cv[[var.id]]
+for (var.info in list(list(1, 'Wealth is Important'), list(3, 'Parents are Important'), 
+                   list(8, 'Race is Important'), list(9, 'Religion is Important'))) {
+  var.id <- as.numeric(var.info[1])
+  bestlam <- best_lmbda_cv[[var.id]]
+  
+  coef_passes <- data.frame(as.matrix(lasso_beta[[var.id]]))
+  colnames(coef_passes) <-  as.character(lasso_lambda[[var.id]])
+  
+  coef_passes <- cbind(CoefName = rownames(coef_passes), coef_passes)
+  rownames(coef_passes) <- 1:nrow(coef_passes)
+  
+  data_long_e <- coef_passes %>% # Apply pivot_longer function
+    pivot_longer(colnames(coef_passes)[-1]) %>% 
+    as.data.frame()
+  
+  data_long_e$name <- as.numeric(data_long_e$name)
+  
+  data_long_trunc <- data_long_e %>% filter(name >= bestlam) %>% filter(value != 0)
+  
+  # Lasso Coef Value Trajectory Line Plot:
+  #ggplot(data_long_trunc, aes(x=name, y=value, group=CoefName, color=CoefName)) +
+  #  geom_line() + 
+  #  geom_hline(aes(yintercept=0)) +
+  #  geom_vline(aes(xintercept=bestlam)) +
+  #  theme(legend.position='bottom', legend.key.size = unit(.4, 'cm')) + 
+  #  labs(title = "Coefficient Values at Each Lambda", x = "Lambda")
+  
+  opt.lmbda.coefs <- data_long_trunc %>% filter(min(name) == name) %>% filter(value != 0) %>% arrange(desc(abs(value)))
+  
+  # Lasso Optimal Coefficient Bar Plot:
+  plt <- ggplot(opt.lmbda.coefs, aes(y=reorder(CoefName, abs(value)), x=value)) +
+    geom_col() + 
+    geom_vline(aes(xintercept=0)) + 
+    labs(y='Covariate Name', x='Covariate Value', title=paste('Optimal Lasso Coefficients:', var.info[[2]]))
+  
+  fname <- paste(var.info[[2]],'Lasso Coefs')
+  
+  ggsave(paste0("Lasso Coefs/", fname, ".png"))
+  
+}
 
-coef_passes <- data.frame(as.matrix(lasso_beta[[var.id]]))
-colnames(coef_passes) <-  as.character(lasso_lambda[[var.id]])
-
-coef_passes <- cbind(CoefName = rownames(coef_passes), coef_passes)
-rownames(coef_passes) <- 1:nrow(coef_passes)
-
-data_long_e <- coef_passes %>% # Apply pivot_longer function
-  pivot_longer(colnames(coef_passes)[-1]) %>% 
-  as.data.frame()
-
-data_long_e$name <- as.numeric(data_long_e$name)
-
-data_long_trunc <- data_long_e %>% filter(name >= bestlam) %>% filter(value != 0)
-
-ggplot(data_long_trunc, aes(x=name, y=value, group=CoefName, color=CoefName)) +
-  geom_line() + 
-  geom_hline(aes(yintercept=0)) +
-  geom_vline(aes(xintercept=bestlam)) +
-  theme(legend.position='bottom', legend.key.size = unit(.4, 'cm')) + 
-  labs(title = "Coefficient Values at Each Lambda", x = "Lambda")
-
-data_long_trunc %>% filter(min(name) == name) %>% filter(value != 0) %>% arrange(desc(abs(value)))

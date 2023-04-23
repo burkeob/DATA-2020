@@ -20,14 +20,14 @@ set.seed(1)
 ####################################################
 
 make.mtrx <- function (df){
-  mtrx <- model.matrix(var ~ year+wrkstat+marital+age+race+educ+sex+born+income+region+partyid+relig+zodiac, df)
+  mtrx <- model.matrix(var ~ year+wrkstat+marital+age+race+educ+sex+born+income+region+partyid+relig, df)
   return (mtrx)
 }
 
 load('cleaned_data.Rdata')
 
 df_covariates <- df %>% dplyr::select(year, wrkstat, marital, age, race, educ, sex, born, income,
-                                      region, partyid, relig, zodiac, vstrat, vpsu, wgt_comb)
+                                      region, partyid, relig, vstrat, vpsu, wgt_comb)
 
 df_variables <- df %>% dplyr::select(wealth_imp, sex_imp, parents_imp, educ_imp, hardWork_imp, rightPpl_imp,
                                      political_imp, race_imp, religion_imp)

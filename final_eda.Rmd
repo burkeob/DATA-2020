@@ -125,12 +125,13 @@ make_year_graph <- function(m) {
   g <- ggplot(prop_df, aes(fill={{m}}, y=prop, x=year)) + 
         geom_bar(position="stack", stat="identity") +
         geom_text(aes(label = scales::percent(prop)), 
-                  position = position_stack(vjust = 0.5), 
-                  size = 2) +
-        labs(title = deparse(substitute(m)),
-             x = "Response",
-             y = "Proportion") + 
-        theme(text = element_text(size = 8))
+                  position = position_stack(vjust = 0.5)) +
+        labs(title = deparse(substitute(m))) + 
+    theme_few() + 
+    theme(text = element_text(size = 18),
+              panel.border = element_blank(),
+          legend.position = "none") + xlab("") + ylab("")
+    
 }
 
 # wealth_imp ------------
@@ -143,9 +144,9 @@ prop_df2 <- compute_props(df2, wealth_imp, wgt_comb)
 prop_df <- bind_rows(prop_df1 , prop_df2)
 
 plot_wealth_imp <- make_year_graph(wealth_imp)
-plot_wealth_imp
+plot(plot_wealth_imp)
 
-ggsave("EDA Images/wealth_time.png", device = "png")
+ggsave("EDA Images/wealth_time.png", device = "png",  width = 8, height = 6)
 
 
 # parents_imp ------------

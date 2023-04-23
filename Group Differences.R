@@ -43,7 +43,7 @@ for (q in colnames(df_variables)){
     
     g <- ggplot(res, aes(x = cc, y = qq)) +
           geom_bar(stat = "identity", position = position_dodge()) +
-          geom_errorbar(aes(ymin = qq - 1.96 * se/sqrt(3), ymax = qq + 1.96 * se/sqrt(3)), position = position_dodge(width = 0.9), width = 0.2) +
+          geom_errorbar(aes(ymin = qq - 1.96 * se, ymax = qq + 1.96 * se), position = position_dodge(width = 0.9), width = 0.2) +
           facet_wrap(~ year,) +
           xlab(c) +
           labs(title = paste0(q, ", ", c),
@@ -61,7 +61,7 @@ for (q in colnames(df_variables)){
 
 g <- ggplot(res, aes(x = cc, y = qq)) +
   geom_bar(stat = "identity", position = position_dodge()) +
-  geom_errorbar(aes(ymin = qq - 1.96 * se/sqrt(3), ymax = qq + 1.96 * se/sqrt(3)), position = position_dodge(width = 0.9), width = 0.2) +
+  geom_errorbar(aes(ymin = qq - 1.96 * se, ymax = qq + 1.96 * se, position = position_dodge(width = 0.9), width = 0.2) +
   facet_wrap(~ year,) +
   xlab(c) +
   labs(title = paste0(q, ", ", c),

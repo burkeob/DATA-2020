@@ -24,7 +24,7 @@ library(dplyr)
 library(tidyverse)
 library(ggplot2)
 library(gridExtra)
-
+library(ggthemes)
 # turning race feature into categorical factor
 df <- df %>%
   mutate(race = ifelse(race %in% c(".n:  No answer" ,

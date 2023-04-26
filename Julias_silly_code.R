@@ -12,14 +12,36 @@ df[,names] <- lapply(df[,names] , factor)
 nums <- c(14,16)
 df[,nums] <- lapply(df[,nums] , as.numeric)
 df = subset(df, select = -c(wtssall,wtssnrps) )
-df <- within(df, relig <- relevel(relig, ref = 'missing'))
-df <- within(df, marital <- relevel(marital, ref ='missing'))
-df <- within(df, partyid <- relevel(partyid, ref ='missing'))
-df <- within(df, wrkstat <- relevel(wrkstat, ref ='missing'))
-df <- within(df, income <- relevel(income, ref ='missing'))
-df <- within(df, sex <- relevel(sex, ref ='missing'))
+df <- within(df, relig <- relevel(relig, ref = 'None'))
+df <- within(df, marital <- relevel(marital, ref ='Never married'))
+df <- within(df, partyid <- relevel(partyid, ref ='Independent'))
+df <- within(df, wrkstat <- relevel(wrkstat, ref ='Working full time'))
+df <- within(df, income <- relevel(income, ref ='$25,000 or more'))
+df <- within(df, sex <- relevel(sex, ref ='MALE'))
+df <- within(df, born <- relevel(born, ref ='YES'))
+df <- within(df, race <- relevel(race, ref ='White'))
 
-surv.des <- svydesign(data = df, ids = ~vpsu, weights = ~wgt_comb, strata = ~vstrat, nest=TRUE)
+surv.des <- svydesign(data = df, 
+                          ids = ~vpsu, 
+                          weights = ~wgt_comb, 
+                          strata = ~vstrat, 
+                          nest=TRUE)
+
+# don't need
+# df_relig <- df %>% dplyr::select(year, wrkstat, marital, age, race, educ, sex, born, income,
+#                                       region, partyid, relig, vstrat, vpsu, wgt_comb,religion_imp)
+# 
+#   
+# survey_relig <- svydesign(data = df_relig, 
+#                       ids = ~vpsu, 
+#                       weights = ~wgt_comb, 
+#                       strata = ~vstrat, 
+#                       nest=TRUE)
+# test_model_1987 <- svyglm(religion_imp ~ wrkstat+marital+age+educ+sex+race+born+income+
+#                        region+partyid+relig, survey_relig, family='quasibinomial', subset=(year == 1987))
+# 
+# test_model_2021 <- svyglm(religion_imp ~ wrkstat+marital+age+educ+sex+race+born+income+
+#                             region+partyid+relig, survey_relig, family='quasibinomial', subset=(year == 2021))
 
 
 #separate models by year:
@@ -42,13 +64,15 @@ compare_coefs <- function(model1,model2){
   
   beta1 <- coefs1[[1]]
   beta2 <- coefs2[[1]]
-  se1 <- coefs1[[4]]^2
-  se2 <- coefs2[[4]]^2
+  se1 <- coefs1[[2]]^2
+  se2 <- coefs2[[2]]^2
   z <- abs(beta1-beta2)/sqrt(se1+se2)
   pvals <- setNames(pnorm(-z),rows)
   pvals <- as.data.frame(pvals)
   pvals['model1_estimate'] <- beta1
+  pvals['model1_pval'] <- coefs1[[4]]
   pvals['model2_estimate'] <- beta2
+  pvals['model2_pval'] <- coefs2[[4]]
 
   return(pvals %>% subset(pvals<0.05))
 }
@@ -78,10 +102,10 @@ binned.resids <- function (x, y, nclass=sqrt(length(x))){
 
 #logistic regression - religion ---------------------------------------
 model_relig_1987 <- svyglm(religion_imp ~ wrkstat+marital+age+educ+sex+race+born+income+
-                       region+partyid+relig+zodiac, design=surv.des, family='quasibinomial', subset=(year == 1987))
+                       region+partyid+relig, design=surv.des, family='quasibinomial', subset=(year == 1987))
 
 model_relig_2021 <- svyglm(religion_imp ~ wrkstat+marital+age+educ+sex+race+born+income+
-                       region+partyid+relig+zodiac, design=surv.des, family='quasibinomial', subset=(year == 2021))
+                       region+partyid+relig, design=surv.des, family='quasibinomial', subset=(year == 2021))
 
 compare_coefs(model_relig_1987,model_relig_2021)
 
@@ -107,10 +131,10 @@ p2
 
 #logistic regression - wealth ---------------------------------------
 model_wealth_1987 <- svyglm(wealth_imp ~ wrkstat+marital+age+educ+sex+race+born+income+
-                             region+partyid+relig+zodiac, design=surv.des, family='quasibinomial', subset=(year == 1987))
+                             region+partyid+relig, design=surv.des, family='quasibinomial', subset=(year == 1987))
 
 model_wealth_2021 <- svyglm(wealth_imp ~ wrkstat+marital+age+educ+sex+race+born+income+
-                             region+partyid+relig+zodiac, design=surv.des, family='quasibinomial', subset=(year == 2021))
+                             region+partyid+relig, design=surv.des, family='quasibinomial', subset=(year == 2021))
 
 compare_coefs(model_wealth_1987,model_wealth_2021)
 
@@ -135,10 +159,10 @@ p2
 
 #logistic regression - sex ---------------------------------------
 model_sex_1987 <- svyglm(sex_imp ~ wrkstat+marital+age+educ+sex+race+born+income+
-                              region+partyid+relig+zodiac, design=surv.des, family='quasibinomial', subset=(year == 1987))
+                              region+partyid+relig, design=surv.des, family='quasibinomial', subset=(year == 1987))
 
 model_sex_2021 <- svyglm(sex_imp ~ wrkstat+marital+age+educ+sex+race+born+income+
-                              region+partyid+relig+zodiac, design=surv.des, family='quasibinomial', subset=(year == 2021))
+                              region+partyid+relig, design=surv.des, family='quasibinomial', subset=(year == 2021))
 
 compare_coefs(model_sex_1987,model_sex_2021)
 
@@ -162,56 +186,117 @@ p2
 
 
 
+#logistic regression - race---------------------------------------
+model_race_1987 <- svyglm(race_imp ~ wrkstat+marital+age+educ+sex+race+born+income+
+                           region+partyid+relig, design=surv.des, family='quasibinomial', subset=(year == 1987))
 
-#logistic regression - combined years ---------------------------------------
+model_race_2021 <- svyglm(race_imp ~ wrkstat+marital+age+educ+sex+race+born+income+
+                           region+partyid+relig, design=surv.des, family='quasibinomial', subset=(year == 2021))
 
-model_wealth <- svyglm(wealth_imp ~ wrkstat+marital+age+educ+sex+race+born+income+
-                          region+partyid+relig+zodiac, design=surv.des, family='quasibinomial')
+compare_coefs(model_race_1987,model_race_2021)
 
-model_relig <- svyglm(religion_imp ~ wrkstat+marital+age+educ+sex+race+born+income+
-                          region+partyid+relig+zodiac, design=surv.des, family='quasibinomial')
+#binned residuals 
 
-model_race <- svyglm(race_imp ~ wrkstat+marital+age+educ+sex+race+born+income+
-                                        region+partyid+relig+zodiac, design=surv.des, family='quasibinomial')
+br <- as.data.frame(binned.resids (model_race_1987$fitted.values, model_race_1987$residuals, nclass=40)$binned)
+p1 <- ggplot(br, aes(br[,1],br[,2])) + geom_point() + 
+  geom_line(aes(br[,1],br[,6]), color='gray') + 
+  geom_line(aes(br[,1],-br[,6]), color='gray') + geom_hline(aes(yintercept=0)) + 
+  xlab('Estimated  response') + ylab('Average Residual') + 
+  ggtitle('Binned Residual Plot- 1987')
+p1
 
-model_polit <- svyglm(political_imp ~ wrkstat+marital+age+educ+sex+race+born+income+
-                          region+partyid+relig+zodiac, design=surv.des, family='quasibinomial')
+br <- as.data.frame(binned.resids (model_race_2021$fitted.values, model_race_2021$residuals, nclass=40)$binned)
+p2 <- ggplot(br, aes(br[,1],br[,2])) + geom_point() + 
+  geom_line(aes(br[,1],br[,6]), color='gray') + 
+  geom_line(aes(br[,1],-br[,6]), color='gray') + geom_hline(aes(yintercept=0)) + 
+  xlab('Estimated  response') + ylab('Average Residual') + 
+  ggtitle('Binned Residual Plot - 2021')
+p2
 
-model_sex <- svyglm(sex_imp ~ wrkstat+marital+age+educ+sex+race+born+income+
-                        region+partyid+relig+zodiac, design=surv.des, family='quasibinomial')
 
+#logistic regression - politics ---------------------------------------
+model_polit_1987 <- svyglm(political_imp ~ wrkstat+marital+age+educ+sex+race+born+income+
+                           region+partyid+relig, design=surv.des, family='quasibinomial', subset=(year == 1987))
+
+model_polit_2021 <- svyglm(political_imp ~ wrkstat+marital+age+educ+sex+race+born+income+
+                           region+partyid+relig, design=surv.des, family='quasibinomial', subset=(year == 2021))
+
+compare_coefs(model_polit_1987,model_polit_2021)
+
+#binned residuals 
+
+br <- as.data.frame(binned.resids (model_polit_1987$fitted.values, model_polit_1987$residuals, nclass=40)$binned)
+p1 <- ggplot(br, aes(br[,1],br[,2])) + geom_point() + 
+  geom_line(aes(br[,1],br[,6]), color='gray') + 
+  geom_line(aes(br[,1],-br[,6]), color='gray') + geom_hline(aes(yintercept=0)) + 
+  xlab('Estimated  response') + ylab('Average Residual') + 
+  ggtitle('Binned Residual Plot- 1987')
+p1
+
+br <- as.data.frame(binned.resids (model_polit_2021$fitted.values, model_polit_2021$residuals, nclass=40)$binned)
+p2 <- ggplot(br, aes(br[,1],br[,2])) + geom_point() + 
+  geom_line(aes(br[,1],br[,6]), color='gray') + 
+  geom_line(aes(br[,1],-br[,6]), color='gray') + geom_hline(aes(yintercept=0)) + 
+  xlab('Estimated  response') + ylab('Average Residual') + 
+  ggtitle('Binned Residual Plot - 2021')
+p2
+
+
+# accuracy--------------------------------------------------------------
 
 #df for accuracy
-df_relig <- df %>% drop_na(c(religion_imp,wrkstat,marital,age,educ,sex,race,born,income,region,partyid,relig,zodiac))
-df_wealth <- df %>% drop_na(c(wealth_imp,wrkstat,marital,age,educ,sex,race,born,income,region,partyid,relig,zodiac))
-df_parents <- df %>% drop_na(c(parents_imp,wrkstat,marital,age,educ,sex,race,born,income,region,partyid,relig,zodiac))
-df_educ <- df %>% drop_na(c(educ_imp, wrkstat,marital,age,educ,sex,race,born,income,region,partyid,relig,zodiac))
-df_work <- df %>% drop_na(c(hardWork_imp, wrkstat,marital,age,educ,sex,race,born,income,region,partyid,relig,zodiac))
-df_ppl <- df %>% drop_na(c(rightPpl_imp, wrkstat,marital,age,educ,sex,race,born,income,region,partyid,relig,zodiac))
-df_politics <- df %>% drop_na(c(political_imp,wrkstat,marital,age,educ,sex,race,born,income,region,partyid,relig,zodiac))
-df_race <- df %>% drop_na(c(race_imp,wrkstat,marital,age,educ,sex,race,born,income,region,partyid,relig,zodiac))
-df_sex <- df %>% drop_na(c(sex_imp,wrkstat,marital,age,educ,sex,race,born,income,region,partyid,relig,zodiac))
+df_relig <- df %>% subset(select=c(religion_imp,wrkstat,marital,age,educ,sex,race,born,income,region,partyid,relig,year)) %>% drop_na()
+df_wealth <- df %>% subset(select=c(wealth_imp,wrkstat,marital,age,educ,sex,race,born,income,region,partyid,relig,year))  %>% drop_na()
+df_politics <- df %>% subset(select=c(political_imp,wrkstat,marital,age,educ,sex,race,born,income,region,partyid,relig,year))  %>% drop_na()
+df_race <- df %>% subset(select=c(race_imp,wrkstat,marital,age,educ,sex,race,born,income,region,partyid,relig,year))  %>% drop_na()
+df_sex <- df %>% subset(select=c(sex_imp,wrkstat,marital,age,educ,sex,race,born,income,region,partyid,relig,year)) %>% drop_na()
 
 #accuracy calculations and visualizations
 acc <- function(model,x,y){
   pred <- predict(model, x, type='response')
+  pred[pred<=0.5] <- 0
   pred[pred>0.5] <- 1
-  pred[pred<1] <- 0
   accuracy = mean(abs(pred - y))
   return(accuracy)
 }
 
-accuracy_relig <- acc(model_relig,df_relig, df_relig$religion_imp)
-accuracy_wealth <- acc(model_wealth,df_wealth, df_wealth$wealth_imp)
-accuracy_race <- acc(model_race,df_race, df_race$race_imp)
-accuracy_sex <- acc(model_sex,df_sex, df_sex$sex_imp)
-accuracy_polit <- acc(model_polit,df_politics, df_politics$political_imp)
 
-accuracy_relig 
-accuracy_wealth
-accuracy_race
-accuracy_sex
-accuracy_polit
+acc(model_relig_1987,subset(df_relig,year==1987),subset(df_relig,year==1987)$religion_imp)
+acc(model_relig_2021,subset(df_relig,year==2021),subset(df_relig,year==2021)$religion_imp)
+
+acc(model_wealth_1987,subset(df_wealth,year==1987),subset(df_wealth,year==1987)$wealth_imp)
+acc(model_wealth_2021,subset(df_wealth,year==2021),subset(df_wealth,year==2021)$wealth_imp)
+
+acc(model_race_1987,subset(df_race,year==1987),subset(df_race,year==1987)$race_imp)
+acc(model_race_2021,subset(df_race,year==2021),subset(df_race,year==2021)$race_imp)
+
+acc(model_sex_1987,subset(df_sex,year==1987),subset(df_sex,year==1987)$sex_imp)
+acc(model_sex_2021,subset(df_sex,year==2021),subset(df_sex,year==2021)$sex_imp)
+
+acc(model_polit_1987,subset(df_politics,year==1987),subset(df_politics,year==1987)$political_imp)
+acc(model_polit_2021,subset(df_politics,year==2021),subset(df_politics,year==2021)$political_imp)
+
+
+
+
+#bad
+#logistic regression - combined years ---------------------------------------
+
+model_wealth <- svyglm(wealth_imp ~ wrkstat+marital+age+educ+sex+race+born+income+
+                          region+partyid+relig, design=surv.des, family='quasibinomial')
+summary(model_wealth)
+
+model_relig <- svyglm(religion_imp ~ wrkstat+marital+age+educ+sex+race+born+income+
+                          region+partyid+relig, design=surv.des, family='quasibinomial')
+
+model_race <- svyglm(race_imp ~ wrkstat+marital+age+educ+sex+race+born+income+
+                       region+partyid+relig, design=surv.des, family='quasibinomial')
+
+model_polit <- svyglm(political_imp ~ wrkstat+marital+age+educ+sex+race+born+income+
+                          region+partyid+relig, design=surv.des, family='quasibinomial')
+
+model_sex <- svyglm(sex_imp ~ wrkstat+marital+age+educ+sex+race+born+income+
+                        region+partyid+relig, design=surv.des, family='quasibinomial')
 
 
 

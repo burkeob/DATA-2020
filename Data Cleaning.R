@@ -1,7 +1,10 @@
 library(tidyverse)
 library(readxl)
 
-setwd("C:/Users/14102/Brown/DATA-2020/")
+# loading in the cleaned data
+wd <- "~/Desktop/DSI Spring/Stats/DATA-2020/"
+
+setwd(wd)
 
 df <- read_excel("GSS.xlsx") |>
   filter(year == 1987 | (year == 2021 & ballot == "Ballot c") | (year == 2021 & ballot == "Ballot b")) |> 

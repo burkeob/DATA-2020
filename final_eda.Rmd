@@ -17,7 +17,7 @@ library(dplyr)
 library(tidyverse)
 library(ggplot2)
 library(gridExtra)
-
+library(ggthemes)
 # turning race feature into categorical factor
 df <- df %>%
   mutate(race = ifelse(race %in% c(".n:  No answer" ,
@@ -118,12 +118,13 @@ make_year_graph <- function(m) {
   g <- ggplot(prop_df, aes(fill={{m}}, y=prop, x=year)) + 
         geom_bar(position="stack", stat="identity") +
         geom_text(aes(label = scales::percent(prop)), 
-                  position = position_stack(vjust = 0.5), 
-                  size = 2) +
-        labs(title = deparse(substitute(m)),
-             x = "Response",
-             y = "Proportion") + 
-        theme(text = element_text(size = 8))
+                  position = position_stack(vjust = 0.5)) +
+        labs(title = deparse(substitute(m))) + 
+    theme_few() + 
+    theme(text = element_text(size = 18),
+              panel.border = element_blank(),
+          legend.position = "none") + xlab("") + ylab("")
+    
 }
 
 # wealth_imp ------------
@@ -136,9 +137,9 @@ prop_df2 <- compute_props(df2, wealth_imp, wgt_comb)
 prop_df <- bind_rows(prop_df1 , prop_df2)
 
 plot_wealth_imp <- make_year_graph(wealth_imp)
-plot_wealth_imp
+plot(plot_wealth_imp)
 
-ggsave("EDA Images/wealth_time.png", device = "png")
+ggsave("EDA Images/wealth_time.png", device = "png",  width = 8, height = 6)
 
 
 # parents_imp ------------
@@ -333,7 +334,7 @@ prop_df <- bind_rows(prop_df1 %>% mutate(variable = "1987"),
 
 prop_df <- bind_rows(prop_df1 , prop_df2)
 
-plot_rightPpl_imp <- make_year_graph(hardWork_imp)
+plot_rightPpl_imp <- make_year_graph(rightPpl_imp)
 plot_rightPpl_imp
 
 ggsave("EDA Images/hardWork_imp_nomissing.png", device = "png")
@@ -416,11 +417,10 @@ ggsave("EDA Images/sex_imp_nomissing.png", device = "png")
 
 
 # arrange the plots in a 3 by 3 grid using arrangeGrob
-targets_wo_na <- grid.arrange(arrangeGrob(wealth_no_na, parents_no_na, educ_no_na, ncol = 3),
-             arrangeGrob(harkwork_no_na, rightPpl_no_na, political_no_na, ncol = 3),
-             arrangeGrob(race_no_na, religion_no_na, sex_no_na, ncol = 3),
+targets_wo_na <- grid.arrange(arrangeGrob(plot_wealth_imp, plot_parents_imp, plot_educ_imp, ncol = 3),
+             arrangeGrob(plot_hardWork_imp, plot_rightPpl_imp, plot_political_imp, ncol = 3),
+             arrangeGrob(plot_race_imp, plot_religion_imp, plot_sex_imp, ncol = 3),
              nrow = 3)
-
 ggsave("EDA Images/targets_without_missing.png", plot = targets_wo_na)
 ```
 
@@ -449,7 +449,7 @@ df2_age <- ggplot(data = df2_no_na, aes(x = age, weight = wgt_comb)) +
 # arrange the plots in a 3 by 3 grid using arrangeGrob
 age_dist_hist <- grid.arrange(arrangeGrob(df1_age, df2_age, ncol = 2))
 
-ggsave("age_histogram.png", plot = age_dist_hist, width=10, height=6)
+#ggsave("age_histogram.png", plot = age_dist_hist, width=10, height=6)
 ```
 
 
@@ -597,7 +597,11 @@ wrkstat_hist <- grid.arrange(arrangeGrob(df1_wrkstat, ncol = 1),
 prop_df1 <- compute_props(df1_no_na, wrkstat, wgt_comb)
 prop_df2 <- compute_props(df2_no_na, wrkstat)
 
+<<<<<<< HEAD
 prop_df <- bind_rows(prop_df1,prop_df2)
+=======
+prop_df <- bind_rows(prop_df1 , prop_df2 )
+>>>>>>> e0c2f340bc11bfa21f049b0c3765d034d8624f12
 
 # stacked + percent barchart
 wrkstat_fig <- ggplot(prop_df, aes(fill=variable, y=prop, x=wrkstat)) + 

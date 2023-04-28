@@ -1,0 +1,200 @@
+---
+title: "Final"
+output: pdf_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+
+```{r}
+# clearing environment
+rm(list=ls())
+
+getwd()
+
+# loading in the cleaned data
+wd <- "C:/Users/Michelle/Documents/R/win-library/DATA2020/DATA-2020"
+
+setwd(wd)
+load("cleaned_data.Rdata")
+
+
+# loading packages
+library(ggplot2)
+library(dplyr)
+library(tidyverse)
+library(gridExtra)
+library(mice)
+
+# turning race feature into categorical factor
+df <- df %>%
+  mutate(race = ifelse(race %in% c(".n:  No answer" ,
+                                   ".s:  Skipped on Web", 
+                                   ".i:  Inapplicable",
+                                   ".d:  Do not Know/Cannot Choose"), "missing", race)) %>%
+  mutate(race = as.factor(race))
+
+# turning zodiac feature into categorical factor
+df <- df %>%
+  mutate(zodiac = ifelse(zodiac %in% c(".n:  No answer" ,
+                                       ".s:  Skipped on Web", 
+                                       ".i:  Inapplicable",
+                                       ".d:  Do not Know/Cannot Choose"), "missing", zodiac)) %>%
+  mutate(zodiac = as.factor(zodiac))
+
+# turning nulls into "No Response" for possible target features
+df <- df %>%
+  mutate(wealth_imp = ifelse(is.na(wealth_imp), "No Response", as.character(wealth_imp))) %>%
+  mutate(wealth_imp = factor(wealth_imp))
+
+df <- df %>%
+  mutate(parents_imp = ifelse(is.na(parents_imp), "No Response", as.character(parents_imp))) %>%
+  mutate(parents_imp = factor(parents_imp))
+
+df <- df %>%
+  mutate(educ_imp = ifelse(is.na(educ_imp), "No Response", as.character(educ_imp))) %>%
+  mutate(educ_imp = factor(educ_imp))
+
+df <- df %>%
+  mutate(hardWork_imp = ifelse(is.na(hardWork_imp), "No Response", as.character(hardWork_imp))) %>%
+  mutate(hardWork_imp = factor(hardWork_imp))
+
+df <- df %>%
+  mutate(rightPpl_imp = ifelse(is.na(rightPpl_imp), "No Response", as.character(rightPpl_imp))) %>%
+  mutate(rightPpl_imp = factor(rightPpl_imp))
+
+df <- df %>%
+  mutate(political_imp = ifelse(is.na(political_imp), "No Response", as.character(political_imp))) %>%
+  mutate(political_imp = factor(political_imp))
+
+df <- df %>%
+  mutate(race_imp = ifelse(is.na(race_imp), "No Response", as.character(race_imp))) %>%
+  mutate(race_imp = factor(race_imp))
+
+df <- df %>%
+  mutate(religion_imp = ifelse(is.na(religion_imp), "No Response", as.character(religion_imp))) %>%
+  mutate(religion_imp = factor(religion_imp))
+
+df <- df %>%
+  mutate(sex_imp = ifelse(is.na(sex_imp), "No Response", as.character(sex_imp))) %>%
+  mutate(sex_imp = factor(sex_imp))
+
+
+# splitting data into two dfs for each year
+df1 <- df %>%
+  filter(df$year=='1987')
+df2 <- df %>%
+  filter(df$year=='2021')
+```
+
+```{r}
+library(ggplot2)
+library(ggthemes)
+
+# age distribution for different years
+df1_no_na <- drop_na(df1)
+df2_no_na <- drop_na(df2)
+
+df1_age <- ggplot(data = df1_no_na, aes(x = age, weight = wgt_comb)) + 
+  geom_histogram(bins = 30, fill = "#84a98c") +
+  labs(title = "Age in 1987", x = "", y = "count") +
+  theme_few() + theme(text = element_text(size = 20)) 
+
+df2_age <- ggplot(data = df2_no_na, aes(x = age, weight = wgt_comb)) + 
+  geom_histogram(bins = 30, fill = "#9f86c0") +
+  labs(title = "Age in 2021", x = "", y = "count") +
+  theme_few() + theme(text = element_text(size = 20)) 
+
+# arrange the plots in a 3 by 3 grid using arrangeGrob
+age_dist_hist <- grid.arrange(arrangeGrob(df1_age, df2_age, ncol = 2))
+
+ggsave("age_histogram.png", plot = age_dist_hist, width=10, height=6)
+```
+```{r}
+summary(df1$age)
+```
+```{r}
+summary(df2$age)
+```
+```{r}
+library(ggplot2)
+library(ggthemes)
+
+# education distribution for different years
+df1_educ <- ggplot(data = df1_no_na, aes(x = educ, weight = wgt_comb)) + 
+  geom_histogram(bins = 30, fill = "#84a98c") +
+  labs(title = "Education in 1987", x = "", y = "count") +
+  theme_few() + theme(text = element_text(size = 20))
+
+df2_educ <- ggplot(data = df2_no_na, aes(x = educ, weight = wgt_comb)) + 
+  geom_histogram(bins = 30, fill = "#9f86c0") +
+  labs(title = "Education in 2021", x = "", y = "count") +
+  theme_few() + theme(text = element_text(size = 20))
+
+# arrange the plots in a 2 by 2 grid using arrangeGrob
+ educ_hist <- grid.arrange(arrangeGrob(df1_educ, df2_educ, ncol = 2))
+ 
+ggsave("educ_histograms.png", plot = educ_hist, width=10, height=6)
+```
+```{r}
+summary(df1$educ)
+```
+```{r}
+summary(df2$educ)
+```
+
+```{r}
+mice1 <-mice(df1)
+df1 <- complete(mice1)
+df1
+```
+
+```{r}
+names <- c(2:3, 6:13)
+df1[,names] <- lapply(df1[,names], as.factor)
+constant_vars <- sapply(df1, function(x) length(unique(x)) == 1)
+df1 <- df1[, !constant_vars]
+```
+
+```{r}
+model1 <- glm(data = df1, race_imp ~ . - wealth_imp - religion_imp - wgt_comb - zodiac, family = binomial(link = "logit"), weights = wgt_comb)
+model1
+```
+
+```{r}
+model2 <- glm(data = df1, wealth_imp ~ . - race_imp - religion_imp - wgt_comb - zodiac, family = binomial(link = "logit"), weights = wgt_comb)
+model2
+```
+
+```{r}
+model3 <- glm(data = df1, religion_imp ~ . - wealth_imp - race_imp - wgt_comb - zodiac, family = binomial(link = "logit"), weights = wgt_comb)
+model3
+```
+
+```{r}
+
+```
+
+```{r}
+names <- c(2:3, 6:13)
+df2[,names] <- lapply(df2[,names], as.factor)
+constant_vars <- sapply(df2, function(x) length(unique(x)) == 1)
+df2 <- df2[, !constant_vars]
+```
+
+```{r}
+model4 <- glm(data = df2, race_imp ~ . - wealth_imp - religion_imp - wgt_comb - zodiac, family = binomial(link = "logit"), weights = wgt_comb)
+model4
+```
+
+```{r}
+model5 <- glm(data = df2, wealth_imp ~ . - race_imp - religion_imp - wgt_comb - zodiac, family = binomial(link = "logit"), weights = wgt_comb)
+model5
+```
+
+```{r}
+model6 <- glm(data = df1, religion_imp ~ . - wealth_imp - race_imp - wgt_comb - zodiac, family = binomial(link = "logit"), weights = wgt_comb)
+model6
+```

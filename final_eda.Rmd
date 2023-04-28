@@ -1,18 +1,11 @@
----
-title: "final_eda"
-output: pdf_document
----
-
-```{r setup, include=FALSE}
-knitr::opts_chunk$set(root.dir ="/Users/arianaschindler/Documents/2023_spring/DATA2020/final_project")
-```
-
 ```{r}
 # clearing environment
 rm(list=ls())
 
+getwd()
+
 # loading in the cleaned data
-wd <- "~/Desktop/DSI Spring/Stats/DATA-2020/"
+wd <- "C:/Users/Michelle/Documents/R/win-library/DATA2020/DATA-2020"
 
 setwd(wd)
 load("cleaned_data.Rdata")
@@ -436,19 +429,22 @@ This gives us a much better view of what general public opinions were of differe
 Now we can check out the distributions of other features in our data.
 
 ```{r, out.width="50%", out.height="50%", include=TRUE, fig.align="center"}
+library(ggplot2)
+library(ggthemes)
+
 # age distribution for different years
 df1_no_na <- drop_na(df1)
 df2_no_na <- drop_na(df2)
 
-df1_age <- ggplot(data = df1_no_na, aes(x = age)) + 
-  geom_histogram(bins = 30) +
-  labs(title = "Histogram of Respondent Age in 1987", x = "Respondent Age", y = "Frequency") +
-  theme(text = element_text(size = 8))
+df1_age <- ggplot(data = df1_no_na, aes(x = age, weight = wgt_comb)) + 
+  geom_histogram(bins = 30, fill = "#84a98c") +
+  labs(title = "Age in 1987", x = "", y = "count") +
+  theme_few() + theme(text = element_text(size = 20)) 
 
-df2_age <- ggplot(data = df2_no_na, aes(x = age)) + 
-  geom_histogram(bins = 30) +
-  labs(title = "Histogram of Respondent Age in 2021", x = "Respondent Age", y = "Frequency") +
-  theme(text = element_text(size = 8))
+df2_age <- ggplot(data = df2_no_na, aes(x = age, weight = wgt_comb)) + 
+  geom_histogram(bins = 30, fill = "#9f86c0") +
+  labs(title = "Age in 2021", x = "", y = "count") +
+  theme_few() + theme(text = element_text(size = 20)) 
 
 # arrange the plots in a 3 by 3 grid using arrangeGrob
 age_dist_hist <- grid.arrange(arrangeGrob(df1_age, df2_age, ncol = 2))
@@ -468,33 +464,93 @@ summary(df2$age)
 Through analysis, we need to keep in mind that while there are 34 years between the survey dates, there is a 12 year difference in the median age of respondents and a 7 year difference in the mean age of respondents, despite the max and min being the same in both years.
 
 ```{r}
-df <- drop_na(df)
-age_boxplot <- ggplot(df, aes(x=factor(year), y=age)) + 
-  geom_boxplot() + 
-  labs(x = "Year", y = "Age", title='Boxplot Distributions of Age in Varying Years') +
-  theme(text = element_text(size = 8))
+library(ggplot2)
+library(ggthemes)
 
-age_boxplot
-#ggsave("age_boxplot.png", plot = age_boxplot, width=10, height=6)
-```
-
-```{r}
 # education distribution for different years
-df1_educ <- ggplot(data = df1_no_na, aes(x = educ)) + 
-  geom_histogram(bins = 30) +
-  labs(title = "Histogram of Respondent Education in 1987", x = "Years of Respondent Education", y = "Frequency") +
-  theme(text = element_text(size = 8))
+df1_educ <- ggplot(data = df1_no_na, aes(x = educ, weight = wgt_comb)) + 
+  geom_histogram(bins = 30, fill = "#84a98c") +
+  labs(title = "Education in 1987", x = "", y = "count") +
+  theme_few() + theme(text = element_text(size = 20))
 
-df2_educ <- ggplot(data = df2_no_na, aes(x = educ)) + 
-  geom_histogram(bins = 30) +
-  labs(title = "Histogram of Respondent Education in 2021", x = "Years of Respondent Education", y = "Frequency") +
-  theme(text = element_text(size = 8))
+df2_educ <- ggplot(data = df2_no_na, aes(x = educ, weight = wgt_comb)) + 
+  geom_histogram(bins = 30, fill = "#9f86c0") +
+  labs(title = "Education in 2021", x = "", y = "count") +
+  theme_few() + theme(text = element_text(size = 20))
 
 # arrange the plots in a 2 by 2 grid using arrangeGrob
  educ_hist <- grid.arrange(arrangeGrob(df1_educ, df2_educ, ncol = 2))
  
-#ggsave("educ_histograms.png", plot = educ_hist, width=10, height=6)
+ggsave("educ_histograms.png", plot = educ_hist, width=10, height=6)
 ```
+```{r}
+summary(df1$educ)
+```
+
+```{r}
+summary(df1$educ)
+```
+```{r}
+# Create frequency table
+freq_table <- table(df1_no_na$income)
+
+# Calculate proportions using prop.table
+prop_table1 <- prop.table(freq_table)
+
+prop_table1
+```
+```{r}
+# Create frequency table
+freq_table <- table(df2_no_na$income)
+
+# Calculate proportions using prop.table
+prop_table2 <- prop.table(freq_table)
+
+prop_table2
+```
+```{r}
+df1_income <- ggplot(data = data.frame(category = names(prop_table1), proportion = prop_table1),
+                     aes(x = category, y = proportion)) + geom_bar(stat = "identity") + 
+  labs(title = "Proportions of Categories") + 
+  xlab("Category") + ylab("Proportion") +
+  theme(text = element_text(size = 8))
+
+df2_income <- ggplot(data = data.frame(category = names(prop_table2), proportion = prop_table2),
+                     aes(x = category, y = proportion)) + geom_bar(stat = "identity") + 
+  labs(title = "Proportions of Categories") + 
+  xlab("Category") + ylab("Proportion") +
+  theme(text = element_text(size = 8))
+
+# arrange the plots in a 2 by 2 grid using arrangeGrob
+ income_hist <- grid.arrange(arrangeGrob(df1_income, df2_income, ncol = 2))
+ 
+ggsave("income_histograms.png", plot = income_hist, width=10, height=6)
+```
+
+
+
+```{r}
+#convert the income variable to a numeric or continuous variable
+df1_no_na$income <- as.numeric(df1_no_na$income)
+df2_no_na$income <- as.numeric(df2_no_na$income)
+
+# income distribution for different years
+df1_income <- ggplot(data = df1_no_na, aes(x = income, weight = wgt_comb)) + 
+  geom_bar(aes(y = (..count..)/sum(..count..)), position = "fill") +
+  labs(title = "Histogram of Respondent Income in 1987", x = "Category of Respondent Income", y = "Frequency") +
+  theme(text = element_text(size = 8))
+
+df2_income <- ggplot(data = df2_no_na, aes(x = income, weight = wgt_comb)) + 
+  geom_bar(aes(y = (..count..)/sum(..count..)), position = "fill") +
+  labs(title = "Histogram of Respondent Income in 2021", x = "Category of Respondent Income", y = "Frequency") +
+  theme(text = element_text(size = 8))
+
+# arrange the plots in a 2 by 2 grid using arrangeGrob
+ income_hist <- grid.arrange(arrangeGrob(df1_income, df2_income, ncol = 2))
+ 
+ggsave("income_histograms.png", plot = income_hist, width=10, height=6)
+```
+
 
 ```{r}
 # work status distribution
@@ -538,11 +594,10 @@ wrkstat_hist <- grid.arrange(arrangeGrob(df1_wrkstat, ncol = 1),
 ```
 
 ```{r}
-prop_df1 <- compute_props(df1_no_na, wrkstat)
+prop_df1 <- compute_props(df1_no_na, wrkstat, wgt_comb)
 prop_df2 <- compute_props(df2_no_na, wrkstat)
 
-prop_df <- bind_rows(prop_df1 %>% mutate(variable = "1987"),
-                         prop_df2 %>% mutate(variable = "2021"))
+prop_df <- bind_rows(prop_df1,prop_df2)
 
 # stacked + percent barchart
 wrkstat_fig <- ggplot(prop_df, aes(fill=variable, y=prop, x=wrkstat)) + 

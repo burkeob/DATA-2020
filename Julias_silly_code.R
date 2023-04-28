@@ -5,6 +5,8 @@ library(glmnet)
 library(survey)
 library(lme4)
 library(svydiags)
+library(caret)
+options(scipen=1)
 
 load(file='cleaned_data.Rdata')
 names <- c(2:3, 6:13)
@@ -20,6 +22,7 @@ df <- within(df, income <- relevel(income, ref ='$25,000 or more'))
 df <- within(df, sex <- relevel(sex, ref ='MALE'))
 df <- within(df, born <- relevel(born, ref ='YES'))
 df <- within(df, race <- relevel(race, ref ='White'))
+levels(df$wrkstat)[levels(df$wrkstat)=='With a job, but not at work because of temporary illness, vacation, strike'] <- 'FMLA,vacation,strike'
 
 surv.des <- svydesign(data = df, 
                           ids = ~vpsu, 
@@ -68,11 +71,38 @@ compare_coefs <- function(model1,model2){
   se2 <- coefs2[[2]]^2
   z <- abs(beta1-beta2)/sqrt(se1+se2)
   pvals <- setNames(pnorm(-z),rows)
+  
+  # pvals <- as.data.frame(pvals)
+  # pvals['Estimate 1987'] <- beta1
+  # pvals['p-value 1987'] <- coefs1[[4]]
+  # pvals['SE 1987'] <- coefs1[[2]]
+  # pvals['Estimate 2021'] <- beta2
+  # pvals['p-value 2021'] <- coefs2[[4]]
+  # pvals['SE 2021'] <- coefs2[[2]]
+  # 
+  # return(pvals %>% subset(pvals<0.05))
+  
+  #for plotting
+  # pvals1 <- as.data.frame(pvals)
+  # pvals2 <- as.data.frame(pvals)
+  # pvals1['Estimate'] <- beta1
+  # pvals1['SE'] <- coefs1[[2]]
+  # pvals1['Year'] <- 1987
+  # pvals1['Variable'] <- row.names(pvals1)
+  # pvals2['Estimate'] <- beta2
+  # pvals2['SE'] <-coefs2[[2]]
+  # pvals2['Year'] <- 2021
+  # pvals2['Variable'] <- row.names(pvals2)
+  # return(rbind(pvals1,pvals2) %>% subset(pvals<0.05)
+  
+  pvals <- signif(pvals,2)       
   pvals <- as.data.frame(pvals)
-  pvals['model1_estimate'] <- beta1
-  pvals['model1_pval'] <- coefs1[[4]]
-  pvals['model2_estimate'] <- beta2
-  pvals['model2_pval'] <- coefs2[[4]]
+  diff_beta <- beta1-beta2
+  pvals['Variable'] <- row.names(pvals)
+  pvals["difference"] <- diff_beta
+  pvals['direction'] <-"Increase from 1987"
+  pvals[pvals$difference<0,"direction"] <- "Decrease from 1987"
+  pvals["difference"] <- abs(diff_beta)
 
   return(pvals %>% subset(pvals<0.05))
 }
@@ -107,7 +137,29 @@ model_relig_1987 <- svyglm(religion_imp ~ wrkstat+marital+age+educ+sex+race+born
 model_relig_2021 <- svyglm(religion_imp ~ wrkstat+marital+age+educ+sex+race+born+income+
                        region+partyid+relig, design=surv.des, family='quasibinomial', subset=(year == 2021))
 
-compare_coefs(model_relig_1987,model_relig_2021)
+base_relig_1987 <- svyglm(religion_imp ~ 1, design=surv.des, family='quasibinomial', subset=(year == 1987))
+
+base_relig_2021 <- svyglm(religion_imp ~ 1, design=surv.des, family='quasibinomial', subset=(year == 2021))
+
+summary(model_relig_1987)$deviance - summary(base_relig_1987)$deviance
+summary(model_relig_2021)$deviance - summary(base_relig_2021)$deviance
+
+acc(model_relig_1987,subset(df_relig,year==1987),subset(df_relig,year==1987)$religion_imp)
+acc(model_relig_2021,subset(df_relig,year==2021),subset(df_relig,year==2021)$religion_imp)
+
+
+temp <- as.data.frame(coefs_relig <- compare_coefs(model_relig_1987,model_relig_2021))
+
+temp <- temp %>% 
+  mutate(direction = factor(direction))
+
+p <-  ggplot(temp, aes(x=difference, y=Variable, fill=direction)) + geom_col() +
+  labs(x="Estimate", y="Variable", color="Direction of Change") + scale_fill_manual(values=c('#84a98c','#9f86c0')) +
+  ggtitle('Importance of Religion: Coefficient Change') + geom_text(aes(label=pvals))
+
+p
+
+ggsave("religion_coefs.png")
 
 #binned residuals 
 
@@ -136,7 +188,29 @@ model_wealth_1987 <- svyglm(wealth_imp ~ wrkstat+marital+age+educ+sex+race+born+
 model_wealth_2021 <- svyglm(wealth_imp ~ wrkstat+marital+age+educ+sex+race+born+income+
                              region+partyid+relig, design=surv.des, family='quasibinomial', subset=(year == 2021))
 
-compare_coefs(model_wealth_1987,model_wealth_2021)
+base_wealth_1987 <- svyglm(wealth_imp ~ 1, design=surv.des, family='quasibinomial', subset=(year == 1987))
+
+base_wealth_2021 <- svyglm(wealth_imp ~ 1, design=surv.des, family='quasibinomial', subset=(year == 2021))
+
+
+summary(model_wealth_1987)$deviance - summary(base_wealth_1987)$deviance
+summary(model_wealth_2021)$deviance - summary(base_wealth_2021)$deviance
+
+acc(model_wealth_1987,subset(df_wealth,year==1987),subset(df_wealth,year==1987)$wealth_imp)
+acc(model_wealth_2021,subset(df_wealth,year==2021),subset(df_wealth,year==2021)$wealth_imp)
+
+temp <- as.data.frame(coefs_wealth <- compare_coefs(model_wealth_1987,model_wealth_2021))
+
+temp <- temp %>% 
+  mutate(direction = factor(direction))
+
+p <-  ggplot(temp, aes(x=difference, y=Variable, fill=direction)) + geom_col() +
+  labs(x="Estimate", y="Variable", color="Direction of Change") + scale_fill_manual(values=c('#84a98c','#9f86c0')) +
+  ggtitle('Importance of Wealth: Coefficient Change') + geom_text(aes(label=pvals))
+
+p
+
+ggsave("wealth_coefs.png")
 
 #binned residuals 
 
@@ -193,7 +267,29 @@ model_race_1987 <- svyglm(race_imp ~ wrkstat+marital+age+educ+sex+race+born+inco
 model_race_2021 <- svyglm(race_imp ~ wrkstat+marital+age+educ+sex+race+born+income+
                            region+partyid+relig, design=surv.des, family='quasibinomial', subset=(year == 2021))
 
-compare_coefs(model_race_1987,model_race_2021)
+base_race_1987 <- svyglm(race_imp ~ 1, design=surv.des, family='quasibinomial', subset=(year == 1987))
+
+base_race_2021 <- svyglm(race_imp ~ 1, design=surv.des, family='quasibinomial', subset=(year == 2021))
+
+summary(model_race_1987)$deviance - summary(base_race_1987)$deviance
+summary(model_race_2021)$deviance - summary(base_race_2021)$deviance
+
+acc(model_race_1987,subset(df_race,year==1987),subset(df_race,year==1987)$race_imp)
+acc(model_race_2021,subset(df_race,year==2021),subset(df_race,year==2021)$race_imp)
+
+
+temp <- as.data.frame(coefs_race <- compare_coefs(model_race_1987,model_race_2021))
+
+temp <- temp %>% 
+  mutate(direction = factor(direction))
+
+p <-  ggplot(temp, aes(x=difference, y=Variable, fill=direction)) + geom_col() +
+  labs(x="Estimate", y="Variable", color="Direction of Change") + scale_fill_manual(values=c('#84a98c','#9f86c0')) +
+  ggtitle('Importance of Race: Coefficient Change') + geom_text(aes(label=pvals))
+
+p
+
+ggsave("race_coefs.png")
 
 #binned residuals 
 
@@ -242,6 +338,11 @@ p2 <- ggplot(br, aes(br[,1],br[,2])) + geom_point() +
 p2
 
 
+
+#------------------------------------------------
+comp_1987 <- anova.svyglm(model_race_1987,model_race_2021)
+
+
 # accuracy--------------------------------------------------------------
 
 #df for accuracy
@@ -264,6 +365,8 @@ acc <- function(model,x,y){
 acc(model_relig_1987,subset(df_relig,year==1987),subset(df_relig,year==1987)$religion_imp)
 acc(model_relig_2021,subset(df_relig,year==2021),subset(df_relig,year==2021)$religion_imp)
 
+# confusionMatrix(predict(model_relig_2021,subset(df_relig,year==2021),type='response'),subset(df_relig,year==2021)$religion_imp)
+
 acc(model_wealth_1987,subset(df_wealth,year==1987),subset(df_wealth,year==1987)$wealth_imp)
 acc(model_wealth_2021,subset(df_wealth,year==2021),subset(df_wealth,year==2021)$wealth_imp)
 
@@ -276,6 +379,22 @@ acc(model_sex_2021,subset(df_sex,year==2021),subset(df_sex,year==2021)$sex_imp)
 acc(model_polit_1987,subset(df_politics,year==1987),subset(df_politics,year==1987)$political_imp)
 acc(model_polit_2021,subset(df_politics,year==2021),subset(df_politics,year==2021)$political_imp)
 
+
+#plots
+temp <- as.data.frame(compare_coefs(model_race_1987,model_race_2021))
+
+temp <- temp %>% 
+  mutate(Year = factor(Year))
+
+p <-  ggplot(temp, aes(x=Estimate, y=Variable, color=Year)) + 
+  geom_point(position = position_dodge(width=.5), size=5) + 
+  geom_errorbarh(aes(xmin=(Estimate+SE), xmax=(Estimate-SE)), position=position_dodge(width=.5), height=0,  size=2) + 
+  labs(x="Estimate", y="Variable", color="Year") + scale_color_manual(values=c('#84a98c','#9f86c0')) +
+  ggtitle('Race Model')
+
+p
+
+ggsave("race_coefs.png")
 
 
 

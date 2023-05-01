@@ -1,10 +1,10 @@
-# install.packages('svydiags')
+# install.packages('ggthemes')
 library(tidyverse)
 library(tidyr)
 library(glmnet)
 library(survey)
 library(lme4)
-library(svydiags)
+library(ggthemes)
 library(caret)
 options(scipen=1)
 
@@ -29,22 +29,6 @@ surv.des <- svydesign(data = df,
                           weights = ~wgt_comb, 
                           strata = ~vstrat, 
                           nest=TRUE)
-
-# don't need
-# df_relig <- df %>% dplyr::select(year, wrkstat, marital, age, race, educ, sex, born, income,
-#                                       region, partyid, relig, vstrat, vpsu, wgt_comb,religion_imp)
-# 
-#   
-# survey_relig <- svydesign(data = df_relig, 
-#                       ids = ~vpsu, 
-#                       weights = ~wgt_comb, 
-#                       strata = ~vstrat, 
-#                       nest=TRUE)
-# test_model_1987 <- svyglm(religion_imp ~ wrkstat+marital+age+educ+sex+race+born+income+
-#                        region+partyid+relig, survey_relig, family='quasibinomial', subset=(year == 1987))
-# 
-# test_model_2021 <- svyglm(religion_imp ~ wrkstat+marital+age+educ+sex+race+born+income+
-#                             region+partyid+relig, survey_relig, family='quasibinomial', subset=(year == 2021))
 
 
 #separate models by year:
@@ -83,18 +67,6 @@ compare_coefs <- function(model1,model2){
   # return(pvals %>% subset(pvals<0.05))
   
   #for plotting
-  # pvals1 <- as.data.frame(pvals)
-  # pvals2 <- as.data.frame(pvals)
-  # pvals1['Estimate'] <- beta1
-  # pvals1['SE'] <- coefs1[[2]]
-  # pvals1['Year'] <- 1987
-  # pvals1['Variable'] <- row.names(pvals1)
-  # pvals2['Estimate'] <- beta2
-  # pvals2['SE'] <-coefs2[[2]]
-  # pvals2['Year'] <- 2021
-  # pvals2['Variable'] <- row.names(pvals2)
-  # return(rbind(pvals1,pvals2) %>% subset(pvals<0.05)
-  
   pvals <- signif(pvals,2)       
   pvals <- as.data.frame(pvals)
   diff_beta <- beta1-beta2
@@ -102,7 +74,9 @@ compare_coefs <- function(model1,model2){
   pvals["difference"] <- diff_beta
   pvals['direction'] <-"Increase from 1987"
   pvals[pvals$difference<0,"direction"] <- "Decrease from 1987"
-  pvals["difference"] <- abs(diff_beta)
+  # pvals["difference"] <- abs(diff_beta)
+  pvals["magnitude"] <- abs(diff_beta)
+  pvals <- arrange(pvals,desc(magnitude))
 
   return(pvals %>% subset(pvals<0.05))
 }
@@ -141,8 +115,11 @@ base_relig_1987 <- svyglm(religion_imp ~ 1, design=surv.des, family='quasibinomi
 
 base_relig_2021 <- svyglm(religion_imp ~ 1, design=surv.des, family='quasibinomial', subset=(year == 2021))
 
-summary(model_relig_1987)$deviance - summary(base_relig_1987)$deviance
-summary(model_relig_2021)$deviance - summary(base_relig_2021)$deviance
+
+summary(model_relig_1987)$deviance 
+summary(base_relig_1987)$deviance
+summary(model_relig_2021)$deviance 
+summary(base_relig_2021)$deviance
 
 acc(model_relig_1987,subset(df_relig,year==1987),subset(df_relig,year==1987)$religion_imp)
 acc(model_relig_2021,subset(df_relig,year==2021),subset(df_relig,year==2021)$religion_imp)
@@ -153,9 +130,12 @@ temp <- as.data.frame(coefs_relig <- compare_coefs(model_relig_1987,model_relig_
 temp <- temp %>% 
   mutate(direction = factor(direction))
 
-p <-  ggplot(temp, aes(x=difference, y=Variable, fill=direction)) + geom_col() +
-  labs(x="Estimate", y="Variable", color="Direction of Change") + scale_fill_manual(values=c('#84a98c','#9f86c0')) +
-  ggtitle('Importance of Religion: Coefficient Change') + geom_text(aes(label=pvals))
+p <-  ggplot(filter(temp,Variable!='(Intercept)'), aes(x=difference, y=fct_reorder(Variable,magnitude), fill=direction)) + geom_col() +
+  labs(x="Estimate", y="Covariate", fill="Direction of Change") + scale_fill_manual(values=c('#84a98c','#9f86c0')) +
+  ggtitle('Importance of Religion: Coefficient Change')  + 
+  geom_text(aes(label=pvals),size=3.5, nudge_x=3.1) + theme_few() + 
+  theme(axis.text=element_text(size=12),axis.title=element_text(size=14)) + 
+  xlim(min(temp$difference),max(temp$difference)+5)
 
 p
 
@@ -193,8 +173,10 @@ base_wealth_1987 <- svyglm(wealth_imp ~ 1, design=surv.des, family='quasibinomia
 base_wealth_2021 <- svyglm(wealth_imp ~ 1, design=surv.des, family='quasibinomial', subset=(year == 2021))
 
 
-summary(model_wealth_1987)$deviance - summary(base_wealth_1987)$deviance
-summary(model_wealth_2021)$deviance - summary(base_wealth_2021)$deviance
+summary(model_wealth_1987)$deviance 
+summary(base_wealth_1987)$deviance
+summary(model_wealth_2021)$deviance 
+summary(base_wealth_2021)$deviance
 
 acc(model_wealth_1987,subset(df_wealth,year==1987),subset(df_wealth,year==1987)$wealth_imp)
 acc(model_wealth_2021,subset(df_wealth,year==2021),subset(df_wealth,year==2021)$wealth_imp)
@@ -204,9 +186,11 @@ temp <- as.data.frame(coefs_wealth <- compare_coefs(model_wealth_1987,model_weal
 temp <- temp %>% 
   mutate(direction = factor(direction))
 
-p <-  ggplot(temp, aes(x=difference, y=Variable, fill=direction)) + geom_col() +
-  labs(x="Estimate", y="Variable", color="Direction of Change") + scale_fill_manual(values=c('#84a98c','#9f86c0')) +
-  ggtitle('Importance of Wealth: Coefficient Change') + geom_text(aes(label=pvals))
+p <-  ggplot(filter(temp,Variable!='(Intercept)'), aes(x=difference, y=fct_reorder(Variable,magnitude), fill=direction)) + geom_col() +
+  labs(x="Estimate", y="Covariate", fill="Direction of Change") + scale_fill_manual(values=c('#84a98c','#9f86c0')) +
+  ggtitle('Importance of Wealth: Coefficient Change')  + geom_text(aes(label=pvals),size=3.5, nudge_x=1) + 
+  theme_few() + xlim(min(temp$difference),max(temp$difference)+1) +
+  theme(axis.text=element_text(size=12),axis.title=element_text(size=14)) 
 
 p
 
@@ -231,34 +215,6 @@ p2 <- ggplot(br, aes(br[,1],br[,2])) + geom_point() +
 p2
 
 
-#logistic regression - sex ---------------------------------------
-model_sex_1987 <- svyglm(sex_imp ~ wrkstat+marital+age+educ+sex+race+born+income+
-                              region+partyid+relig, design=surv.des, family='quasibinomial', subset=(year == 1987))
-
-model_sex_2021 <- svyglm(sex_imp ~ wrkstat+marital+age+educ+sex+race+born+income+
-                              region+partyid+relig, design=surv.des, family='quasibinomial', subset=(year == 2021))
-
-compare_coefs(model_sex_1987,model_sex_2021)
-
-#binned residuals 
-
-br <- as.data.frame(binned.resids (model_sex_1987$fitted.values, model_sex_1987$residuals, nclass=40)$binned)
-p1 <- ggplot(br, aes(br[,1],br[,2])) + geom_point() + 
-  geom_line(aes(br[,1],br[,6]), color='gray') + 
-  geom_line(aes(br[,1],-br[,6]), color='gray') + geom_hline(aes(yintercept=0)) + 
-  xlab('Estimated  response') + ylab('Average Residual') + 
-  ggtitle('Binned Residual Plot- 1987')
-p1
-
-br <- as.data.frame(binned.resids (model_sex_2021$fitted.values, model_sex_2021$residuals, nclass=40)$binned)
-p2 <- ggplot(br, aes(br[,1],br[,2])) + geom_point() + 
-  geom_line(aes(br[,1],br[,6]), color='gray') + 
-  geom_line(aes(br[,1],-br[,6]), color='gray') + geom_hline(aes(yintercept=0)) + 
-  xlab('Estimated  response') + ylab('Average Residual') + 
-  ggtitle('Binned Residual Plot - 2021')
-p2
-
-
 
 #logistic regression - race---------------------------------------
 model_race_1987 <- svyglm(race_imp ~ wrkstat+marital+age+educ+sex+race+born+income+
@@ -271,8 +227,10 @@ base_race_1987 <- svyglm(race_imp ~ 1, design=surv.des, family='quasibinomial', 
 
 base_race_2021 <- svyglm(race_imp ~ 1, design=surv.des, family='quasibinomial', subset=(year == 2021))
 
-summary(model_race_1987)$deviance - summary(base_race_1987)$deviance
-summary(model_race_2021)$deviance - summary(base_race_2021)$deviance
+summary(model_race_1987)$deviance
+summary(base_race_1987)$deviance
+summary(model_race_2021)$deviance
+summary(base_race_2021)$deviance
 
 acc(model_race_1987,subset(df_race,year==1987),subset(df_race,year==1987)$race_imp)
 acc(model_race_2021,subset(df_race,year==2021),subset(df_race,year==2021)$race_imp)
@@ -283,9 +241,11 @@ temp <- as.data.frame(coefs_race <- compare_coefs(model_race_1987,model_race_202
 temp <- temp %>% 
   mutate(direction = factor(direction))
 
-p <-  ggplot(temp, aes(x=difference, y=Variable, fill=direction)) + geom_col() +
-  labs(x="Estimate", y="Variable", color="Direction of Change") + scale_fill_manual(values=c('#84a98c','#9f86c0')) +
-  ggtitle('Importance of Race: Coefficient Change') + geom_text(aes(label=pvals))
+p <-  ggplot(filter(temp,Variable!='(Intercept)'), aes(x=difference, y=fct_reorder(Variable,magnitude), fill=direction)) + geom_col() +
+  labs(x="Estimate", y="Covariate", fill="Direction of Change") + scale_fill_manual(values=c('#84a98c','#9f86c0')) +
+  ggtitle('Importance of Race: Coefficient Change') + geom_text(aes(label=pvals),size=3.5, nudge_x=2) + theme_few() + 
+  theme(axis.text=element_text(size=12),axis.title=element_text(size=14)) + 
+  xlim(min(temp$difference),max(temp$difference)+5)
 
 p
 
@@ -310,6 +270,15 @@ p2 <- ggplot(br, aes(br[,1],br[,2])) + geom_point() +
 p2
 
 
+#logistic regression - sex ---------------------------------------
+model_sex_1987 <- svyglm(sex_imp ~ wrkstat+marital+age+educ+sex+race+born+income+
+                           region+partyid+relig, design=surv.des, family='quasibinomial', subset=(year == 1987))
+
+model_sex_2021 <- svyglm(sex_imp ~ wrkstat+marital+age+educ+sex+race+born+income+
+                           region+partyid+relig, design=surv.des, family='quasibinomial', subset=(year == 2021))
+
+
+
 #logistic regression - politics ---------------------------------------
 model_polit_1987 <- svyglm(political_imp ~ wrkstat+marital+age+educ+sex+race+born+income+
                            region+partyid+relig, design=surv.des, family='quasibinomial', subset=(year == 1987))
@@ -317,33 +286,10 @@ model_polit_1987 <- svyglm(political_imp ~ wrkstat+marital+age+educ+sex+race+bor
 model_polit_2021 <- svyglm(political_imp ~ wrkstat+marital+age+educ+sex+race+born+income+
                            region+partyid+relig, design=surv.des, family='quasibinomial', subset=(year == 2021))
 
-compare_coefs(model_polit_1987,model_polit_2021)
-
-#binned residuals 
-
-br <- as.data.frame(binned.resids (model_polit_1987$fitted.values, model_polit_1987$residuals, nclass=40)$binned)
-p1 <- ggplot(br, aes(br[,1],br[,2])) + geom_point() + 
-  geom_line(aes(br[,1],br[,6]), color='gray') + 
-  geom_line(aes(br[,1],-br[,6]), color='gray') + geom_hline(aes(yintercept=0)) + 
-  xlab('Estimated  response') + ylab('Average Residual') + 
-  ggtitle('Binned Residual Plot- 1987')
-p1
-
-br <- as.data.frame(binned.resids (model_polit_2021$fitted.values, model_polit_2021$residuals, nclass=40)$binned)
-p2 <- ggplot(br, aes(br[,1],br[,2])) + geom_point() + 
-  geom_line(aes(br[,1],br[,6]), color='gray') + 
-  geom_line(aes(br[,1],-br[,6]), color='gray') + geom_hline(aes(yintercept=0)) + 
-  xlab('Estimated  response') + ylab('Average Residual') + 
-  ggtitle('Binned Residual Plot - 2021')
-p2
 
 
 
-#------------------------------------------------
-comp_1987 <- anova.svyglm(model_race_1987,model_race_2021)
-
-
-# accuracy--------------------------------------------------------------
+# error rate --------------------------------------------------------------
 
 #df for accuracy
 df_relig <- df %>% subset(select=c(religion_imp,wrkstat,marital,age,educ,sex,race,born,income,region,partyid,relig,year)) %>% drop_na()
@@ -352,32 +298,14 @@ df_politics <- df %>% subset(select=c(political_imp,wrkstat,marital,age,educ,sex
 df_race <- df %>% subset(select=c(race_imp,wrkstat,marital,age,educ,sex,race,born,income,region,partyid,relig,year))  %>% drop_na()
 df_sex <- df %>% subset(select=c(sex_imp,wrkstat,marital,age,educ,sex,race,born,income,region,partyid,relig,year)) %>% drop_na()
 
-#accuracy calculations and visualizations
+#error rate calculations
 acc <- function(model,x,y){
   pred <- predict(model, x, type='response')
   pred[pred<=0.5] <- 0
   pred[pred>0.5] <- 1
-  accuracy = mean(abs(pred - y))
-  return(accuracy)
+  err = mean(abs(pred - y))
+  return(err)
 }
-
-
-acc(model_relig_1987,subset(df_relig,year==1987),subset(df_relig,year==1987)$religion_imp)
-acc(model_relig_2021,subset(df_relig,year==2021),subset(df_relig,year==2021)$religion_imp)
-
-# confusionMatrix(predict(model_relig_2021,subset(df_relig,year==2021),type='response'),subset(df_relig,year==2021)$religion_imp)
-
-acc(model_wealth_1987,subset(df_wealth,year==1987),subset(df_wealth,year==1987)$wealth_imp)
-acc(model_wealth_2021,subset(df_wealth,year==2021),subset(df_wealth,year==2021)$wealth_imp)
-
-acc(model_race_1987,subset(df_race,year==1987),subset(df_race,year==1987)$race_imp)
-acc(model_race_2021,subset(df_race,year==2021),subset(df_race,year==2021)$race_imp)
-
-acc(model_sex_1987,subset(df_sex,year==1987),subset(df_sex,year==1987)$sex_imp)
-acc(model_sex_2021,subset(df_sex,year==2021),subset(df_sex,year==2021)$sex_imp)
-
-acc(model_polit_1987,subset(df_politics,year==1987),subset(df_politics,year==1987)$political_imp)
-acc(model_polit_2021,subset(df_politics,year==2021),subset(df_politics,year==2021)$political_imp)
 
 
 #plots
@@ -395,62 +323,4 @@ p <-  ggplot(temp, aes(x=Estimate, y=Variable, color=Year)) +
 p
 
 ggsave("race_coefs.png")
-
-
-
-#bad
-#logistic regression - combined years ---------------------------------------
-
-model_wealth <- svyglm(wealth_imp ~ wrkstat+marital+age+educ+sex+race+born+income+
-                          region+partyid+relig, design=surv.des, family='quasibinomial')
-summary(model_wealth)
-
-model_relig <- svyglm(religion_imp ~ wrkstat+marital+age+educ+sex+race+born+income+
-                          region+partyid+relig, design=surv.des, family='quasibinomial')
-
-model_race <- svyglm(race_imp ~ wrkstat+marital+age+educ+sex+race+born+income+
-                       region+partyid+relig, design=surv.des, family='quasibinomial')
-
-model_polit <- svyglm(political_imp ~ wrkstat+marital+age+educ+sex+race+born+income+
-                          region+partyid+relig, design=surv.des, family='quasibinomial')
-
-model_sex <- svyglm(sex_imp ~ wrkstat+marital+age+educ+sex+race+born+income+
-                        region+partyid+relig, design=surv.des, family='quasibinomial')
-
-
-
-# #mixed effects model - religion-------------------------------------------------------
-
-# #no strat variable
-mixed_relig <- glmer(formula = religion_imp ~ wrkstat+marital+age+educ+sex+race+born+income+
-                     region+partyid+relig+zodiac + (1+wrkstat+marital+age+educ+sex+race+born+income+
-                     region+partyid+relig+zodiac|year), data = df_relig, weights = wgt_comb, family = 'binomial')
-
-
-#VIF --------------------------------------------------------------
-
-#this is bad - don't use
-#can't handle missing values and data must align between model and X
-temp_data <-df[,c(1:13,15,17,25)]
-temp_data <- temp_data %>% drop_na()
-survcomp.des <- svydesign(data = df, ids = ~vpsu, weights = ~wgt_comb, strata = ~vstrat, nest=TRUE)
-
-model_1987_comp <- svyglm(religion_imp ~ wrkstat+marital+age+educ+sex+race+born+income+
-                            region+partyid+relig+zodiac, design=survcomp.des, family='quasibinomial', subset=(year == 1987))
-
-model_2021_comp <- svyglm(religion_imp ~ wrkstat+marital+age+educ+sex+race+born+income+
-                            region+partyid+relig+zodiac, design=survcomp.des, family='quasibinomial', subset=(year == 2021))
-
-model_ary <- model.matrix(model_1987_comp$formula, data = model_1987_comp$data)
-X <- model_ary[, -2]
-w <- model_1987_comp$weights
-vif_1987 <- svyvif(model_1987_comp, X, w)
-
-model_ary <- model.matrix(model_2021_comp$formula, data = model_2021_comp$data)
-X <- model_ary[, -2]
-w <- model_2021_comp$weights
-vif_2021 <- svyvif(model_2021_comp, X, w)
-
-
-
 

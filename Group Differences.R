@@ -58,14 +58,33 @@ for (q in colnames(df_variables)){
   
 }
 
+q <- "wealth_imp"
+c <- "race" 
+
+df_cov_temp <- df %>% dplyr::select(q, c, year, vpsu,wgt_comb,vstrat)
+df_cov_temp <- df_cov_temp %>%
+  filter(df_cov_temp[[c]] != ".i:  Inapplicable") %>% drop_na()
+
+surv.des <- svydesign(data = df_cov_temp, ids = ~vpsu, weights = ~wgt_comb, strata = ~vstrat, nest=TRUE)
+
+res <- svyby(~get(q), ~ get(c) + year, design = surv.des, FUN = svymean)
+
+names(res)[1] <- c
+names(res)[3] <- q
+
+qq <- res[[q]]
+cc <- res[[c]]
+
 
 g <- ggplot(res, aes(x = cc, y = qq)) +
   geom_bar(stat = "identity", position = position_dodge()) +
   geom_errorbar(aes(ymin = qq - 1.96 * se, ymax = qq + 1.96 * se), position = position_dodge(width = 0.9), width = 0.2) +
   facet_wrap(~ year,) +
   xlab(c) +
-  labs(title = paste0(q, ", ", c),
-       y = "Proportion") + 
+  labs(title = "Wealth is Important",
+       x = "Race",
+       y = "Percent Affirmative") + 
+  ylim(0,1) + 
   theme_few()
 
 g
